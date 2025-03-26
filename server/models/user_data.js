@@ -1,44 +1,38 @@
-import { DataTypes } from "sequelize";
-import bcrypt from "bcrypt";
-import { sequelize } from "../config/database.js";
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database.js';
 
-const User_data = sequelize.define("User", {
+const User = sequelize.define('User', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
     primaryKey: true,
-  },
-  email: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
-    validate: {
-      isEmail: true,
-    },
   },
   full_name: {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+  },
   password: {
     type: DataTypes.STRING,
     allowNull: false,
   },
-  createdAt: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
-  },
-  updatedAt: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
-  },
 }, {
-  hooks: {
-    beforeCreate: async (user) => {
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(user.password, salt);
-    },
-  },
+  tableName: 'users',
+  timestamps: false,
 });
 
-export default User_data;
+// Ensure the table is created if it doesn't exist
+(async () => {
+  try {
+    await sequelize.sync();
+    console.log('User table is ready.');
+  } catch (err) {
+    console.error('Error creating User table:', err);
+  }
+})();
+
+export default User;
