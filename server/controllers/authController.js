@@ -1,52 +1,91 @@
-import User from "../models/user_data.js";
-import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { User } from '../models/index.js';
 
 dotenv.config();
 
-const generateToken = (user) => {
-  return jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
-    expiresIn: "1d",
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET || 'your-secret-key', {
+    expiresIn: '30d',
   });
 };
 
-export const signUp = async (req, res) => {
+export const register = async (req, res) => {
+  console.log('Register endpoint hit with body:', req.body);
+  
   try {
-    const { email, password, full_name } = req.body;
+    const { username, email, password } = req.body;
+    
+    // Log what we're receiving
+    console.log('Creating user with:', { username, email });
 
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+    // Check if user already exists
+    const userExists = await User.findOne({ where: { email } });
+    if (userExists) {
+      return res.status(400).json({ message: 'User already exists' });
     }
 
-    const user = await User.create({ email, password, full_name });
-    const token = generateToken(user);
+    // Create user
+    const user = await User.create({
+      username,
+      email,
+      password,
+    });
 
-    res.status(201).json({ user, token });
+    if (user) {
+      res.status(201).json({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        token: generateToken(user.id),
+      });
+    } else {
+      res.status(400).json({ message: 'Invalid user data' });
+    }
   } catch (error) {
-    res.status(500).json({ message: "Signup failed", error: error.message });
+    console.error('Registration error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-export const signIn = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     const user = await User.findOne({ where: { email } });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
+    if (user && (await user.matchPassword(password))) {
+      res.json({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        token: generateToken(user.id),
+      });
+    } else {
+      res.status(401).json({ message: 'Invalid email or password' });
     }
-
-    const token = generateToken(user);
-    res.json({ user, token });
   } catch (error) {
-    res.status(500).json({ message: "Signin failed", error: error.message });
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const getUserProfile = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password'] },
+    });
+
+    if (user) {
+      res.json(user);
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 

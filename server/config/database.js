@@ -1,30 +1,34 @@
-import { Sequelize } from "sequelize";
-import dotenv from "dotenv";
+import dotenv from 'dotenv';
+import { Sequelize } from 'sequelize';
 
 dotenv.config();
 
-const encodedDbUrl = encodeURI(process.env.DB_URL);
+const sequelize = new Sequelize(
+  process.env.DB_NAME,
+  process.env.DB_USER,
+  process.env.DB_PASSWORD,
+  {
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 5432,
+    dialect: 'postgres',
+    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    }
+  }
+);
 
-export const sequelize = new Sequelize(encodedDbUrl, {
-  dialect: "postgres",
-  logging: false,
-  define: {
-    freezeTableName: true,
-  },
-  pool: {
-    max: 5,
-    min: 0,
-    acquire: 30000,
-    idle: 10000,
-  },
-});
-
-export const connectDB = async () => {
+const connectDB = async () => {
   try {
     await sequelize.authenticate();
-    console.log("Database connected successfully!");
-    await sequelize.sync();
+    console.log('Database connection established successfully.');
   } catch (error) {
-    console.error("Database connection failed:", error);
+    console.error('Unable to connect to the database:', error);
+    process.exit(1);
   }
 };
+
+export { sequelize, connectDB };

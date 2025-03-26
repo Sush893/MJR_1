@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>API Test</title>
+</head>
+<body>
+  <h1>API Test</h1>
+  
+  <div>
+    <h2>Test Direct Register</h2>
+    <button onclick="testRegister()">Test Register</button>
+    <pre id="registerResult"></pre>
+  </div>
+  
+  <script>
+    async function testRegister() {
+      try {
+        const response = await fetch('http://localhost:5005/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            username: 'testuser',
+            email: 'test@example.com',
+            password: 'password123'
+          })
+        });
+        
+        const data = await response.text();
+        document.getElementById('registerResult').textContent = data;
+      } catch (error) {
+        document.getElementById('registerResult').textContent = 'Error: ' + error.message;
+      }
+    }
+  </script>
+</body>
+</html> 

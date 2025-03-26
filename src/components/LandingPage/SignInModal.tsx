@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Lock, AlertCircle, User } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../context/AuthContext';
+import { login, register } from '../../services/authService';
 
 interface SignInModalProps {
   isOpen: boolean;
@@ -15,24 +16,31 @@ export function SignInModal({ isOpen, onClose, onSignIn, message }: SignInModalP
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
-  const { signIn, signUp, error, loading } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const { setUser } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
       if (isSignUp) {
-        await signUp(email, password, fullName);
+        const userData = await register({ 
+          username: fullName,
+          email, 
+          password 
+        });
+        setUser(userData);
       } else {
-        await signIn(email, password);
+        const userData = await login(email, password);
+        setUser(userData);
       }
       
-      if (!error) {
-        onClose();
-        onSignIn();
-      }
-    } catch (err) {
-      console.error('Authentication error:', err);
+      onClose();
+      onSignIn();
+    } catch (error: any) {
+      console.error('Authentication error:', error);
+      setError(error.response?.data?.message || 
+               (isSignUp ? 'Registration failed' : 'Login failed'));
     }
   };
 
@@ -133,10 +141,9 @@ export function SignInModal({ isOpen, onClose, onSignIn, message }: SignInModalP
 
               <button
                 type="submit"
-                disabled={loading}
                 className="w-full py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Loading...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+                {isSignUp ? 'Sign Up' : 'Sign In'}
               </button>
 
               <div className="text-center">
