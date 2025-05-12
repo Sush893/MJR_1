@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Lock, AlertCircle, User } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import axios from 'axios';
 
 interface SignInModalProps {
   isOpen: boolean;
@@ -14,28 +15,123 @@ export function SignInModal({ isOpen, onClose, onSignIn, message }: SignInModalP
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false); // Changed from string to boolean
+  const [localError, setLocalError] = useState('');
+
+
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setLocalError('');
+    
+  //   try {
+  //     if (isSignUp) {
+  //       const response = await axios.post("http://localhost:3000/api/signup", {
+  //         email, 
+  //         password, 
+  //         fullName
+  //       });
+        
+  //       console.log('SignUp successful', response.data);
+        
+  //       // Store user data in localStorage on the client side
+  //       if (response.data.token) {
+  //         localStorage.setItem('token', response.data.token);
+  //         console.log('Token saved to localStorage:', response.data.token);
+          
+  //         // Check if user object exists in response
+  //         if (response.data.user) {
+  //           localStorage.setItem('user', JSON.stringify(response.data.user));
+  //           console.log('User saved to localStorage:', response.data.user);
+  //         } else {
+  //           // If backend doesn't send user object directly, create minimal user object
+  //           const userData = { email, fullName };
+  //           localStorage.setItem('user', JSON.stringify(userData));
+  //           console.log('Created minimal user data in localStorage:', userData);
+  //         }
+  //       } else {
+  //         console.warn('No token received from signup endpoint');
+  //       }
+        
+  //       onClose();
+  //       onSignIn();
+  //     } else {
+  //       const response = await axios.post("http://localhost:3000/api/signin", {
+  //         email, 
+  //         password
+  //       });
+        
+  //       console.log('Login Successful', response.data);
+        
+  //       // Store user data in localStorage on the client side
+  //       if (response.data.token) {
+  //         localStorage.setItem('token', response.data.token);
+  //         console.log('Token saved to localStorage:', response.data.token);
+          
+  //         if (response.data.user) {
+  //           localStorage.setItem('user', JSON.stringify(response.data.user));
+  //           console.log('User saved to localStorage:', response.data.user);
+  //         }
+  //       } else {
+  //         console.warn('No token received from signin endpoint');
+  //       }
+        
+  //       onClose();
+  //       onSignIn();
+  //     }
+  //   } catch (err) {
+  //     console.error('Authentication error:', err);
+  //     if (axios.isAxiosError(err) && err.response) {
+  //       setLocalError(err.response.data.error || 'Authentication failed');
+  //     } else {
+  //       setLocalError('Network error. Please try again later.');
+  //     }
+  //   }
+  // };
+
+  // const toggleSignUp = () => {
+  //   setIsSignUp(!isSignUp);
+  //   setEmail('');
+  //   setPassword('');
+  //   setFullName('');
+  //   setLocalError('');
+  // };
+
   const { signIn, signUp, error, loading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLocalError('');
     
     try {
       if (isSignUp) {
+        // Use the signUp method from your AuthContext
         await signUp(email, password, fullName);
+        console.log('SignUp successful');
       } else {
+        // Use the signIn method from your AuthContext
         await signIn(email, password);
+        console.log('Login Successful');
       }
       
+      // If we get here without errors being set in the context, 
+      // the operation was successful
       if (!error) {
         onClose();
         onSignIn();
       }
     } catch (err) {
       console.error('Authentication error:', err);
+      setLocalError(err instanceof Error ? err.message : 'Authentication failed');
     }
   };
 
+  const toggleSignUp = () => {
+    setIsSignUp(!isSignUp);
+    setEmail('');
+    setPassword('');
+    setFullName('');
+    setLocalError('');
+  };
   return (
     <AnimatePresence>
       {isOpen && (
@@ -71,10 +167,10 @@ export function SignInModal({ isOpen, onClose, onSignIn, message }: SignInModalP
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {error && (
+              {(error || localError) && (
                 <div className="flex items-center gap-2 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
                   <AlertCircle className="w-4 h-4" />
-                  {error}
+                  {error || localError}
                 </div>
               )}
 
@@ -144,7 +240,7 @@ export function SignInModal({ isOpen, onClose, onSignIn, message }: SignInModalP
                   {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
                   <button
                     type="button"
-                    onClick={() => setIsSignUp(!isSignUp)}
+                    onClick={toggleSignUp}
                     className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
                   >
                     {isSignUp ? 'Sign in' : 'Sign up'}

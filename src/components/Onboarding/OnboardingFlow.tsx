@@ -7,6 +7,7 @@ import { Projects } from './steps/Projects';
 import { Communities } from './steps/Communities';
 import { useAuth } from '../../contexts/AuthContext';
 import { LocalStorage } from '../../lib/storage/localStorage';
+import { ProfileAPI } from '../../lib/api/profile.ts'; // Make sure this import path is correct
 
 interface OnboardingData {
   role: string;
@@ -52,6 +53,8 @@ export function OnboardingFlow() {
     activeProjects: [],
     communities: []
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
   const handleNext = async (stepData: Partial<OnboardingData>) => {
@@ -59,29 +62,49 @@ export function OnboardingFlow() {
     setData(updatedData);
 
     if (step === steps.length - 1 && user) {
+      setIsSubmitting(true);
+      setError(null);
+      
       try {
-        // Update stored profile
-        const currentProfile = LocalStorage.getProfile();
-        if (currentProfile) {
-          const updatedProfile = {
-            ...currentProfile,
-            user_role: updatedData.role,
-            role_details: updatedData.roleDetails,
-            first_name: updatedData.firstName,
-            last_name: updatedData.lastName,
-            interests: updatedData.interests,
-            active_projects: updatedData.activeProjects,
-            communities: updatedData.communities,
-            onboarding_completed: true
-          };
-          
-          LocalStorage.setProfile(updatedProfile);
-          
-          // Force reload to trigger re-render with updated profile
-          window.location.reload();
+        const profileData = {
+          userId: user.id, // Make sure this matches your user object structure
+          first_name: updatedData.firstName,
+          last_name: updatedData.lastName,
+          role: updatedData.role,
+          role_details: updatedData.roleDetails,
+          interests: updatedData.interests,
+          active_projects: updatedData.activeProjects,
+          communities: updatedData.communities,
+          onboarding_completed: true
+        };
+
+        // First try to update existing profile
+        try {
+          await ProfileAPI.updateProfile(profileData);
+        } catch (updateError) {
+          // If profile doesn't exist, create it
+          if (updateError.response?.status === 404) {
+            await ProfileAPI.createProfile(profileData);
+          } else {
+            throw updateError;
+          }
         }
+
+        // Update local storage
+        const currentProfile = LocalStorage.getProfile() || {};
+        LocalStorage.setProfile({
+          ...currentProfile,
+          ...profileData,
+          onboarding_completed: true
+        });
+
+        // Redirect or reload
+        window.location.reload();
       } catch (err) {
-        console.error('Error saving profile:', err);
+        console.error('Profile save error:', err);
+        setError('Failed to save profile. Please try again.');
+      } finally {
+        setIsSubmitting(false);
       }
     } else {
       setStep(step + 1);
@@ -103,6 +126,12 @@ export function OnboardingFlow() {
           </div>
 
           <div className="p-8">
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+                {error}
+              </div>
+            )}
+
             <AnimatePresence mode="wait">
               <motion.div
                 key={step}
@@ -118,6 +147,7 @@ export function OnboardingFlow() {
                 <CurrentStep
                   data={data}
                   onNext={handleNext}
+                  isSubmitting={isSubmitting}
                 />
               </motion.div>
             </AnimatePresence>
