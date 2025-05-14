@@ -6,9 +6,29 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const generateToken = (user) => {
-  return jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET || 'your_jwt_secret_key', {
+  const payload = { 
+    id: user.id, 
+    email: user.email 
+  };
+  const secret = process.env.JWT_SECRET || 'your_jwt_secret_key';
+  
+  // Log JWT generation details (without revealing the secret)
+  console.log(`🔑 JWT: Generating token for user ID ${user.id} with email ${user.email}`);
+  console.log(`🔑 JWT: Using secret key ${secret === 'your_jwt_secret_key' ? '(default fallback)' : '(from env)'}`);
+  
+  const token = jwt.sign(payload, secret, {
     expiresIn: "1d",
   });
+  
+  // Validate the generated token
+  try {
+    jwt.verify(token, secret);
+    console.log(`✅ JWT: Token verified successfully, length: ${token.length} characters`);
+  } catch (error) {
+    console.error(`❌ JWT ERROR: Generated token verification failed: ${error.message}`);
+  }
+  
+  return token;
 };
 
 export const signUp = async (req, res) => {

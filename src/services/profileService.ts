@@ -1,7 +1,16 @@
 import axios from 'axios';
 import { getAuthHeader } from './authService';
 
-const API_URL = 'http://localhost:5005/api/profile';
+const API_URL = 'http://localhost:3000/api/profile';
+
+// Define interface for profile data
+interface ProfileData {
+  bio?: string;
+  location?: string;
+  avatar_url?: string;
+  interests?: string[];
+  [key: string]: any;
+}
 
 // Get user profile
 export const getUserProfile = async () => {
@@ -27,7 +36,7 @@ export const getUserProfile = async () => {
 };
 
 // Update profile during onboarding
-export const updateOnboardingProfile = async (profileData) => {
+export const updateOnboardingProfile = async (profileData: ProfileData) => {
   try {
     const response = await fetch(`${API_URL}/onboarding`, {
       method: 'PUT',
