@@ -1,31 +1,70 @@
+import dotenv from 'dotenv';
+// Load environment variables early
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import sequelize from './config/database.js';
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
-import associations from './models/associations.js';
+import setupAssociations from './models/associations.js';
 import User from './models/user_data.js';
 import Profile from './models/profile.js';
 
-
-dotenv.config();
+// Initialize express app
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Debug JWT Secret
+console.log('JWT Secret available:', process.env.JWT_SECRET ? 'Yes' : 'No');
+
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*', // For development - replace with your frontend URL in production
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  credentials: true
+}));
 app.use(express.json());
 
-// Routes
-app.use('/api', authRoutes);
-app.use('/api',profileRoutes);
-
-// associations()
-
-// Ensure DB connection and sync models
-app.listen(PORT, () => {
-  console.log(` Server running on http://localhost:${PORT}`);
+// Debug route
+app.get('/debug', (req, res) => {
+  res.json({ 
+    message: 'Server is healthy!',
+    env: {
+      nodeEnv: process.env.NODE_ENV,
+      port: process.env.PORT,
+      jwtAvailable: !!process.env.JWT_SECRET,
+      dbHost: process.env.PG_HOST
+    }
+  });
 });
 
-// User.hasOne(Profile);
+// Setup routes
+app.use('/api', authRoutes);
+app.use('/api', profileRoutes);
+
+// Initialize database and start server
+const startServer = async () => {
+  try {
+    // Test database connection
+    await sequelize.authenticate();
+    console.log('✅ Database connection established successfully');
+    
+    // Sync database models
+    await sequelize.sync({ alter: true });
+    console.log('✅ Database synced successfully');
+    
+    // Setup model associations
+    setupAssociations();
+    
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`✅ Server running on http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();

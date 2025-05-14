@@ -1,65 +1,64 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
+import User from './user_data.js';
 
 const Profile = sequelize.define('Profile', {
   id: {
     type: DataTypes.INTEGER,
+    autoIncrement: true,
     primaryKey: true,
-    autoIncrement: true
   },
-  userId: {
+  user_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'users',
+      model: User,
       key: 'id'
-    },
-    onDelete: 'CASCADE'
-  },
-  first_name: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  last_name: {
-    type: DataTypes.STRING,
-    
-  },
-  role: {
-    type: DataTypes.STRING,
-    allowNull: true
+    }
   },
   bio: {
     type: DataTypes.TEXT,
-    allowNull: true
+    allowNull: true,
   },
   location: {
     type: DataTypes.STRING,
-    allowNull: true
+    allowNull: true,
+  },
+  avatar_url: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  job_title: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  company: {
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   interests: {
     type: DataTypes.ARRAY(DataTypes.STRING),
-    defaultValue: []
+    defaultValue: [],
   },
-  active_projects: {
+  skills: {
     type: DataTypes.ARRAY(DataTypes.STRING),
-    defaultValue: []
+    defaultValue: [],
   },
-  communities: {
-    type: DataTypes.ARRAY(DataTypes.STRING),
-    defaultValue: []
-  }
+  onboarding_completed: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  onboarding_step: {
+    type: DataTypes.INTEGER,
+    defaultValue: 1,
+  },
 }, {
   tableName: 'profiles',
-  timestamps: true
+  timestamps: true,
 });
 
-(async () => {
-    try {
-      await sequelize.sync();
-      console.log('Profile table is ready.');
-    } catch (err) {
-      console.error('Error creating User table:', err);
-    }
-  })();
+// Define associations
+User.hasOne(Profile, { foreignKey: 'user_id', onDelete: 'CASCADE' });
+Profile.belongsTo(User, { foreignKey: 'user_id' });
 
 export default Profile;

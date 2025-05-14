@@ -25,14 +25,4 @@ const User = sequelize.define('User', {
   timestamps: false,
 });
 
-// Ensure the table is created if it doesn't exist
-(async () => {
-  try {
-    await sequelize.sync();
-    console.log('User table is ready.');
-  } catch (err) {
-    console.error('Error creating User table:', err);
-  }
-})();
-
 export default User;
