@@ -6,6 +6,7 @@ import express from 'express';
 import cors from 'cors';
 import sequelize from './config/database.js';
 import authRoutes from './routes/authRoutes.js';
+import projectRoutes from './routes/projectRoutes.js'
 import profileRoutes from './routes/profileRoutes.js';
 import setupAssociations from './models/associations.js';
 import User from './models/user_data.js';
@@ -42,6 +43,7 @@ app.get('/debug', (req, res) => {
 // Setup routes
 app.use('/api', authRoutes);
 app.use('/api', profileRoutes);
+app.use('/api', projectRoutes);
 
 // Initialize database and start server
 const startServer = async () => {
