@@ -54,7 +54,5 @@ const Pitch = sequelize.define('Pitch', {
 // Associations
 User.hasMany(Pitch, { foreignKey: 'user_id', onDelete: 'CASCADE' });
 Pitch.belongsTo(User, { foreignKey: 'user_id' });
-console.log('User-Pitch association established');
-console.log('Pitch-User association established');
 
 export default Pitch;
