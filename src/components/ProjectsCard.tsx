@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
-import { X, ChevronRight } from 'lucide-react';
+import { X, ChevronRight, Loader2 } from 'lucide-react';
 
 interface Project {
-  name: string;
+  id: string;
+  title: string;
   description: string;
   status: 'planning' | 'in-progress' | 'launched';
+  imageUrl?: string;
 }
 
 interface ProjectsCardProps {
   projects: Project[];
+  isLoading?: boolean;
+  error?: Error | null;
 }
 
-export function ProjectsCard({ projects }: ProjectsCardProps) {
+export function ProjectsCard({ projects, isLoading = false, error = null }: ProjectsCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const getStatusColor = (status: Project['status']) => {
@@ -22,8 +26,20 @@ export function ProjectsCard({ projects }: ProjectsCardProps) {
         return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300';
       case 'launched':
         return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
+      default:
+        return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300';
     }
   };
+
+  if (error) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] dark:shadow-gray-900/10 p-6">
+        <div className="text-red-500 dark:text-red-400">
+          <p>Error loading projects: {error.message}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -32,18 +48,30 @@ export function ProjectsCard({ projects }: ProjectsCardProps) {
         onClick={() => setIsModalOpen(true)}
       >
         <div className="flex items-center gap-4 mb-6">
-          <span className="text-5xl font-bold text-primary-600 dark:text-primary-400">
-            {projects.length}
-          </span>
+          {isLoading ? (
+            <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
+          ) : (
+            <span className="text-5xl font-bold text-primary-600 dark:text-primary-400">
+              {projects.length}
+            </span>
+          )}
           <p className="text-lg font-medium leading-tight dark:text-gray-200">Active Projects & Pitches</p>
           <ChevronRight className="w-5 h-5 ml-auto text-primary-600 dark:text-primary-400" />
         </div>
         <div className="flex flex-wrap gap-2">
-          {projects.slice(0, 4).map((project) => (
-            <span key={project.name} className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(project.status)}`}>
-              {project.name}
-            </span>
-          ))}
+          {isLoading ? (
+            <div className="w-full flex items-center justify-center py-2">
+              <Loader2 className="w-5 h-5 text-primary-600 dark:text-primary-400 animate-spin" />
+            </div>
+          ) : projects.length > 0 ? (
+            projects.slice(0, 4).map((project) => (
+              <span key={project.id} className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(project.status)}`}>
+                {project.title}
+              </span>
+            ))
+          ) : (
+            <p className="text-gray-500 dark:text-gray-400 text-sm">No active projects</p>
+          )}
         </div>
       </div>
 
@@ -62,32 +90,42 @@ export function ProjectsCard({ projects }: ProjectsCardProps) {
             </div>
             
             <div className="p-6 space-y-6">
-              {projects.map((project) => (
-                <div 
-                  key={project.name}
-                  className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-shadow"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold dark:text-white">{project.name}</h3>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(project.status)}`}>
-                      {project.status}
-                    </span>
-                  </div>
-                  
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    {project.description}
-                  </p>
-                  
-                  <div className="flex gap-3">
-                    <button className="flex-1 px-4 py-2 bg-primary-500 dark:bg-primary-600 text-white rounded-full hover:bg-primary-600 dark:hover:bg-primary-500 transition-colors text-sm font-medium">
-                      View Details
-                    </button>
-                    <button className="flex-1 px-4 py-2 border border-primary-500 dark:border-primary-400 text-primary-500 dark:text-primary-400 rounded-full hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors text-sm font-medium">
-                      Team Chat
-                    </button>
-                  </div>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
                 </div>
-              ))}
+              ) : projects.length > 0 ? (
+                projects.map((project) => (
+                  <div 
+                    key={project.id}
+                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-shadow"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-xl font-bold dark:text-white">{project.title}</h3>
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(project.status)}`}>
+                        {project.status}
+                      </span>
+                    </div>
+                    
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                      {project.description}
+                    </p>
+                    
+                    <div className="flex gap-3">
+                      <button className="flex-1 px-4 py-2 bg-primary-500 dark:bg-primary-600 text-white rounded-full hover:bg-primary-600 dark:hover:bg-primary-500 transition-colors text-sm font-medium">
+                        View Details
+                      </button>
+                      <button className="flex-1 px-4 py-2 border border-primary-500 dark:border-primary-400 text-primary-500 dark:text-primary-400 rounded-full hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors text-sm font-medium">
+                        Team Chat
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500 dark:text-gray-400">No active projects</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

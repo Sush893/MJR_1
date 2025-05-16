@@ -30,7 +30,9 @@ export const AuthAPI = {
       
       if (response.data.token) {
         // Store the token for future API requests
+        console.log('🔒 [API] Storing token in localStorage, length:', response.data.token.length);
         LocalStorage.setAuthToken(response.data.token);
+        console.log('🔍 [API] Verification: token in localStorage after setting:', LocalStorage.getAuthToken()?.length);
         
         // Return the user data in the format expected by AuthContext
         return { 
@@ -48,6 +50,7 @@ export const AuthAPI = {
       }
     } catch (error: any) {
       console.error('❌ [API] Sign in error:', error.response?.data || error.message);
+      console.error('❌ [API] Full error:', error);
       
       // If the API call fails in development, fall back to mock implementation
       if (process.env.NODE_ENV === 'development' && error.response?.status >= 500) {
@@ -65,6 +68,7 @@ export const AuthAPI = {
   signUp: async (email: string, password: string, fullName: string) => {
     try {
       console.log('📝 [API] Sending registration request for:', email);
+      console.log('📝 [API] Registration data:', { email, fullName, passwordLength: password?.length });
       
       const response = await axios.post(`${API_BASE_URL}/signup`, {
         email,
@@ -72,11 +76,13 @@ export const AuthAPI = {
         fullName
       });
       
-      console.log('✅ [API] Registration successful, response:', response.data);
+      console.log('✅ [API] Registration successful, response data:', response.data);
       
       if (response.data.token) {
         // Store the token for future API requests
+        console.log('🔒 [API] Storing token in localStorage, length:', response.data.token.length);
         LocalStorage.setAuthToken(response.data.token);
+        console.log('🔍 [API] Verification: token in localStorage after setting:', LocalStorage.getAuthToken()?.length);
         
         // Return the user data in the format expected by AuthContext
         return { 
@@ -94,6 +100,7 @@ export const AuthAPI = {
       }
     } catch (error: any) {
       console.error('❌ [API] Sign up error:', error.response?.data || error.message);
+      console.error('❌ [API] Full error:', error);
       
       // If the API call fails in development, fall back to mock implementation
       if (process.env.NODE_ENV === 'development' && error.response?.status >= 500) {

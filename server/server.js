@@ -56,11 +56,15 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log('✅ Database connection established successfully');
     
+    console.log('Setting up model associations...');
     // Setup model associations
     setupAssociations();
+    console.log('Model associations established');
     
     // Sync database models
-    await sequelize.sync({ alter: true });
+    // WARNING: Using force:true will drop all tables and recreate them
+    // This is a temporary solution for development; in production, use migrations
+    await sequelize.sync({ force: true });
     console.log('✅ Database synced successfully');
     
     // Start server

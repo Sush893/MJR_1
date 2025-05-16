@@ -9,6 +9,7 @@ import { PitchesPage } from './PitchesPage/PitchesPage';
 import { EventsPage } from './EventsPage/EventsPage';
 import { AnalyticsPage } from './AnalyticsPage/AnalyticsPage';
 import { AccountSettings } from './AccountSettings/AccountSettings';
+import { DebugPanel } from './common/DebugPanel';
 
 export function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -23,7 +24,10 @@ export function Dashboard() {
         currentPage={currentPage}
       />
       <div className={`transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
-        <Header onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
+        <Header 
+          onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+          isSidebarExpanded={isSidebarOpen}
+        />
         <main className="pt-20">
           {currentPage === 'dashboard' && <DashboardContent />}
           {currentPage === 'projects' && <ProjectsPage />}
@@ -35,6 +39,9 @@ export function Dashboard() {
           {currentPage === 'settings' && <AccountSettings />}
         </main>
       </div>
+      
+      {/* Debug panel for development - only shown in development mode */}
+      {process.env.NODE_ENV === 'development' && <DebugPanel />}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Features } from './Features';
 import { Testimonials } from './Testimonials';
 import { Navbar } from './Navbar';
 import { Footer } from './Footer';
+import { DebugPanel } from '../common/DebugPanel';
 
 export function LandingPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,6 +31,9 @@ export function LandingPage() {
         onClose={() => setIsModalOpen(false)}
         onSignIn={() => {}}
       />
+      
+      {/* Debug panel for development - only shown in development mode */}
+      {process.env.NODE_ENV === 'development' && <DebugPanel />}
     </div>
   );
 }

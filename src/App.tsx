@@ -24,6 +24,14 @@ import { LoadingSpinner } from './components/common/LoadingSpinner';
 function AppContent() {
   const { user, profile, loading } = useAuth();
 
+  // Console log for debugging profile status
+  React.useEffect(() => {
+    if (profile) {
+      console.log('[App] Current profile:', profile);
+      console.log('[App] Onboarding status:', profile.onboarding_completed);
+    }
+  }, [profile]);
+
   // Show loading spinner while checking auth state
   if (loading) {
     return <LoadingSpinner />;
@@ -36,10 +44,12 @@ function AppContent() {
 
   // Show onboarding flow for new users
   if (!profile?.onboarding_completed) {
+    console.log('[App] Showing onboarding flow because onboarding_completed =', profile?.onboarding_completed);
     return <OnboardingFlow />;
   }
 
   // Show main dashboard for authenticated & onboarded users
+  console.log('[App] Showing dashboard because onboarding is completed');
   return <Dashboard />;
 }
 

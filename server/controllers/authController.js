@@ -34,6 +34,7 @@ const generateToken = (user) => {
 export const signUp = async (req, res) => {
   const { fullName, email, password } = req.body;
   console.log('📝 SIGNUP: Received request for:', email);
+  console.log('📝 SIGNUP: Request data:', { fullName, email, passwordLength: password?.length });
 
   try {
     const existingUser = await User.findOne({ where: { email } });
@@ -43,7 +44,10 @@ export const signUp = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    console.log(`✓ SIGNUP: Password hashed successfully`);
+    
     const newUser = await User.create({ full_name: fullName, email, password: hashedPassword });
+    console.log(`✓ SIGNUP: User created in database with ID: ${newUser.id}`);
     
     if (newUser) {
       // Create a user object without the password for the response
@@ -54,7 +58,9 @@ export const signUp = async (req, res) => {
         created_at: new Date().toISOString()
       };
       
+      console.log(`✓ SIGNUP: User response prepared:`, userResponse);
       const token = generateToken(userResponse);
+      console.log(`✓ SIGNUP: Token generated, length: ${token.length}`);
       console.log(`✅ SIGNUP: Successfully created user with ID ${newUser.id}`);
       
       // Return both the token and user data
@@ -84,7 +90,10 @@ export const signIn = async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    console.log(`✓ SIGNIN: User found with ID ${user.id}`);
     const passwordMatch = await bcrypt.compare(password, user.password);
+    console.log(`✓ SIGNIN: Password comparison result:`, passwordMatch);
+    
     if (!passwordMatch) {
       console.log(`⚠️ SIGNIN: Invalid password for user ${email}`);
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -100,6 +109,7 @@ export const signIn = async (req, res) => {
     
     const token = generateToken(userResponse);
     console.log(`✅ SIGNIN: User ${email} (ID: ${user.id}) logged in successfully`);
+    console.log(`✅ SIGNIN: Generated token length: ${token.length}`);
     
     res.status(200).json({ 
       message: 'Sign-in successful', 

@@ -6,9 +6,10 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
   onMenuClick: () => void;
+  isSidebarExpanded?: boolean;
 }
 
-export function Header({ onMenuClick }: HeaderProps) {
+export function Header({ onMenuClick, isSidebarExpanded }: HeaderProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { profile } = useAuth();
 
@@ -20,7 +21,7 @@ export function Header({ onMenuClick }: HeaderProps) {
       >
         <Menu className="w-6 h-6 dark:text-gray-200" />
       </button>
-      <div className="flex-1 max-w-xl mx-4">
+      <div className={`flex-1 mx-4 transition-all duration-300 ${isSidebarExpanded ? 'max-w-md' : 'max-w-xl'}`}>
         <input
           type="search"
           placeholder="Search..."

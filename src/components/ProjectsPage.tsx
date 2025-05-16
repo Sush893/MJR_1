@@ -4,6 +4,7 @@ import { ProjectEditor } from './ProjectsPage/ProjectEditor';
 import { ProjectAPI } from '../lib/api/project';
 import { AuthAPI } from '../lib/api/auth';
 import { LoadingSpinner } from './common/LoadingSpinner';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Project {
   id: string;
@@ -17,6 +18,7 @@ interface Project {
 }
 
 export function ProjectsPage() {
+  const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<'planning' | 'in-progress' | 'launched'>('planning');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -26,18 +28,17 @@ export function ProjectsPage() {
   const [showActions, setShowActions] = useState<string | null>(null);
 
   useEffect(() => {
-    loadProjects();
-  }, []);
+    if (user?.id) {
+      loadProjects();
+    }
+  }, [user?.id]);
 
   const loadProjects = async () => {
+    if (!user?.id) return;
     try {
-      // First get the current user's profile to get userId
-      const { data: profileData, error: profileError } = await AuthAPI.getProfile();
-      if (profileError) throw profileError;
-      if (!profileData?.user?.id) throw new Error('No user ID found');
-
-      // Then load projects for this user
-      const { data } = await ProjectAPI.getAllProjects(profileData.user.id.toString());
+      console.log('📱 ProjectsPage - Loading projects for user ID:', user.id);
+      const { data } = await ProjectAPI.getAllProjects(user.id.toString());
+      console.log('📱 ProjectsPage - Loaded projects:', data);
       setProjects(data);
     } catch (err) {
       console.error('Error loading projects:', err);
@@ -48,16 +49,9 @@ export function ProjectsPage() {
   };
 
   const handleCreateProject = async (formData: FormData) => {
+    if (!user?.id) return;
     try {
-      // Get current user's profile to get userId
-      const { data: profileData, error: profileError } = await AuthAPI.getProfile();
-      if (profileError) throw profileError;
-      if (!profileData?.user?.id) throw new Error('No user ID found');
-
-      // Add user_id to the form data (using the correct field name)
-      formData.append('user_id', profileData.user.id.toString());
-
-      // Create project
+      formData.append('user_id', user.id.toString());
       await ProjectAPI.createProject(formData);
       await loadProjects();
       setIsEditing(false);
@@ -73,12 +67,9 @@ export function ProjectsPage() {
   };
 
   const handleDeleteProject = async (projectId: string) => {
+    if (!user?.id) return;
     try {
-      const { data: profileData, error: profileError } = await AuthAPI.getProfile();
-      if (profileError) throw profileError;
-      if (!profileData?.user?.id) throw new Error('No user ID found');
-
-      await ProjectAPI.deleteProject(projectId, profileData.user.id.toString());
+      await ProjectAPI.deleteProject(projectId, user.id.toString());
       await loadProjects();
     } catch (err) {
       console.error('Error deleting project:', err);
@@ -87,19 +78,14 @@ export function ProjectsPage() {
   };
 
   const handleUpdateProject = async (formData: FormData) => {
+    if (!user?.id || !selectedProject) return;
     try {
-      const { data: profileData, error: profileError } = await AuthAPI.getProfile();
-      if (profileError) throw profileError;
-      if (!profileData?.user?.id) throw new Error('No user ID found');
-      if (!selectedProject) return;
-
-      await ProjectAPI.updateProject(selectedProject.id, profileData.user.id.toString(), {
+      await ProjectAPI.updateProject(selectedProject.id, user.id.toString(), {
         title: formData.get('title') as string,
         description: formData.get('Description') as string,
         status: formData.get('status') as 'planning' | 'in-progress' | 'launched',
         imageUrl: formData.get('image_url') as string
       });
-
       await loadProjects();
       setSelectedProject(null);
       setIsEditing(false);

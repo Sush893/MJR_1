@@ -4,6 +4,7 @@ import { Profile } from '../lib/supabase';
 import { AuthContextType } from '../types/auth';
 import { LocalStorage } from '../lib/storage/localStorage';
 import { AuthAPI } from '../lib/api/auth';
+import { ProfileAPI } from '../lib/api/profile';
 import { setToken, getToken, removeToken } from '../services/authService';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -53,17 +54,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setError(null);
 
+      console.log('🔑 [Auth] Starting sign in process for:', email);
       const { data, error } = await AuthAPI.signIn(email, password);
+      console.log('🔑 [Auth] Sign in response:', { data, error });
+      
       if (error) throw error;
       if (!data || !data.user) throw new Error('No user data returned');
 
       // Get token from localStorage (was set by AuthAPI.signIn)
       const token = LocalStorage.getAuthToken();
+      console.log('🔑 [Auth] Token retrieved from localStorage:', token ? `${token.substring(0, 10)}...` : 'NULL');
+      
       if (!token) {
         console.error('No token available after sign in');
       } else {
         // Store token in our service
+        console.log('🔑 [Auth] Storing token in authService');
         setToken(token);
+      }
+
+      // Try to fetch the user's actual profile to get onboarding status
+      let onboardingCompleted = false;
+      try {
+        console.log('👤 [Auth] Attempting to fetch user profile from API');
+        const profileResponse = await AuthAPI.getProfile();
+        console.log('👤 [Auth] Full profile response:', profileResponse);
+        
+        // The profile data is nested in profileResponse.data.profile
+        if (profileResponse.data && profileResponse.data.profile && 
+            profileResponse.data.profile.onboarding_completed !== undefined) {
+          console.log('👤 [Auth] Profile fetched successfully, onboarding status:', 
+                     profileResponse.data.profile.onboarding_completed);
+          onboardingCompleted = profileResponse.data.profile.onboarding_completed;
+        } else {
+          console.log('👤 [Auth] Profile fetch successful but no onboarding status found in:', 
+                     profileResponse.data);
+        }
+      } catch (profileError) {
+        console.error('❌ [Auth] Error fetching profile, using default onboarding status:', profileError);
       }
 
       const mockProfile = {
@@ -79,17 +107,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         interests: [],
         active_projects: [],
         communities: [],
-        onboarding_completed: false,
+        onboarding_completed: onboardingCompleted, // Use the actual status or default to false
         created_at: data.user.created_at,
         updated_at: data.user.created_at
       };
       
+      console.log('👤 [Auth] Storing user and profile in localStorage');
       LocalStorage.setUser(data.user);
       LocalStorage.setProfile(mockProfile);
 
       setUser(data.user as User);
       setProfile(mockProfile as Profile);
+      console.log('✅ [Auth] Sign in completed successfully');
     } catch (err: any) {
+      console.error('❌ [Auth] Sign in error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -101,17 +132,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setError(null);
 
+      console.log('📝 [Auth] Starting sign up process for:', email);
       const { data, error } = await AuthAPI.signUp(email, password, fullName);
+      console.log('📝 [Auth] Sign up response:', { data, error });
+      
       if (error) throw error;
       if (!data || !data.user) throw new Error('No user data returned');
 
       // Get token from localStorage (was set by AuthAPI.signUp)
       const token = LocalStorage.getAuthToken();
+      console.log('🔑 [Auth] Token retrieved from localStorage after signup:', token ? `${token.substring(0, 10)}...` : 'NULL');
+      
       if (!token) {
         console.error('No token available after sign up');
       } else {
         // Store token in our service
+        console.log('🔑 [Auth] Storing token in authService');
         setToken(token);
+      }
+
+      // For new accounts, onboarding should be false by default
+      // We'll still try to fetch profile in case the backend created one
+      let onboardingCompleted = false;
+      try {
+        console.log('👤 [Auth] Attempting to fetch new user profile from API');
+        const profileResponse = await AuthAPI.getProfile();
+        console.log('👤 [Auth] Full profile response from signup:', profileResponse);
+        
+        // The profile data is nested in profileResponse.data.profile
+        if (profileResponse.data && profileResponse.data.profile && 
+            profileResponse.data.profile.onboarding_completed !== undefined) {
+          console.log('👤 [Auth] Profile fetched successfully, onboarding status:', 
+                     profileResponse.data.profile.onboarding_completed);
+          onboardingCompleted = profileResponse.data.profile.onboarding_completed;
+        } else {
+          console.log('👤 [Auth] Profile fetch successful but no onboarding status found in:', 
+                     profileResponse.data);
+        }
+      } catch (profileError) {
+        console.log('👤 [Auth] No profile found yet for new user, using default onboarding=false');
       }
 
       const mockProfile = {
@@ -127,17 +186,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         interests: [],
         active_projects: [],
         communities: [],
-        onboarding_completed: false,
+        onboarding_completed: onboardingCompleted, // For new accounts, this will be false
         created_at: data.user.created_at,
         updated_at: data.user.created_at
       };
       
+      console.log('👤 [Auth] Storing user and profile in localStorage');
       LocalStorage.setUser(data.user);
       LocalStorage.setProfile(mockProfile);
 
       setUser(data.user as User);
       setProfile(mockProfile as Profile);
+      console.log('✅ [Auth] Sign up completed successfully');
     } catch (err: any) {
+      console.error('❌ [Auth] Sign up error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -165,6 +227,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Add a method to update onboarding status
+  const completeOnboarding = async () => {
+    if (!profile) {
+      console.error('❌ [Auth] Cannot complete onboarding: no profile available');
+      return;
+    }
+    
+    console.log('👤 [Auth] Marking onboarding as completed');
+    
+    const updatedProfile = {
+      ...profile,
+      onboarding_completed: true
+    };
+    
+    try {
+      // Try to update on the server
+      console.log('👤 [Auth] Sending onboarding completion status to server');
+      await ProfileAPI.updateProfile({
+        onboarding_completed: true,
+        user_id: profile.id
+      });
+      console.log('✅ [Auth] Server profile updated with onboarding status');
+    } catch (error) {
+      console.error('❌ [Auth] Failed to update server profile:', error);
+      // Continue with local updates even if server update fails
+    }
+    
+    // Update in localStorage
+    console.log('👤 [Auth] Updating onboarding status in localStorage');
+    LocalStorage.setProfile(updatedProfile);
+    
+    // Update state
+    setProfile(updatedProfile);
+    
+    console.log('✅ [Auth] Onboarding status updated successfully');
+    return updatedProfile;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -173,6 +273,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signIn,
         signUp,
         signOut,
+        completeOnboarding,
         loading,
         error,
         initialized

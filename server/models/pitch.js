@@ -46,9 +46,19 @@ const Pitch = sequelize.define('Pitch', {
     type: DataTypes.INTEGER,
     defaultValue: 0,
   },
+  createdAt: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  }
 }, {
   tableName: 'pitches',
-  timestamps: true, // createdAt and updatedAt
+  
 });
 
 // Associations

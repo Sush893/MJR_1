@@ -8,8 +8,9 @@ import { Communities } from './steps/Communities';
 import { useAuth } from '../../contexts/AuthContext';
 import { LocalStorage } from '../../lib/storage/localStorage';
 import { ProfileAPI } from '../../lib/api/profile.ts'; // Make sure this import path is correct
+import { DebugPanel } from '../common/DebugPanel';
 
-interface OnboardingData {
+export interface OnboardingData {
   role: string;
   roleDetails: Record<string, any>;
   firstName: string;
@@ -55,7 +56,7 @@ export function OnboardingFlow() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, completeOnboarding } = useAuth();
 
   const handleNext = async (stepData: Partial<OnboardingData>) => {
     const updatedData = { ...data, ...stepData };
@@ -66,6 +67,7 @@ export function OnboardingFlow() {
       setError(null);
       
       try {
+        console.log('📝 [Onboarding] Submitting final onboarding data');
         const profileData = {
           userId: user.id, // Make sure this matches your user object structure
           first_name: updatedData.firstName,
@@ -80,28 +82,44 @@ export function OnboardingFlow() {
 
         // First try to update existing profile
         try {
+          console.log('📝 [Onboarding] Attempting to update existing profile');
           await ProfileAPI.updateProfile(profileData);
-        } catch (updateError) {
+          console.log('✅ [Onboarding] Profile updated successfully');
+        } catch (error) {
+          // Type assertion for the error
+          const updateError = error as { response?: { status?: number } };
+          
           // If profile doesn't exist, create it
           if (updateError.response?.status === 404) {
+            console.log('📝 [Onboarding] No existing profile found, creating new profile');
             await ProfileAPI.createProfile(profileData);
+            console.log('✅ [Onboarding] Profile created successfully');
           } else {
+            console.error('❌ [Onboarding] Profile update error:', updateError);
             throw updateError;
           }
         }
 
-        // Update local storage
+        // Update local storage and auth context
+        console.log('📝 [Onboarding] Updating local profile data');
         const currentProfile = LocalStorage.getProfile() || {};
         LocalStorage.setProfile({
           ...currentProfile,
           ...profileData,
           onboarding_completed: true
         });
+        
+        // Use AuthContext method to update state
+        console.log('📝 [Onboarding] Marking onboarding as completed in AuthContext');
+        completeOnboarding();
+        console.log('✅ [Onboarding] Onboarding completed successfully');
 
-        // Redirect or reload
-        window.location.reload();
+        // Redirect or reload - wait a moment to make sure storage updates are processed
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 500);
       } catch (err) {
-        console.error('Profile save error:', err);
+        console.error('❌ [Onboarding] Profile save error:', err);
         setError('Failed to save profile. Please try again.');
       } finally {
         setIsSubmitting(false);
@@ -147,13 +165,15 @@ export function OnboardingFlow() {
                 <CurrentStep
                   data={data}
                   onNext={handleNext}
-                  isSubmitting={isSubmitting}
                 />
               </motion.div>
             </AnimatePresence>
           </div>
         </div>
       </div>
+      
+      {/* Debug panel for development - only shown in development mode */}
+      {process.env.NODE_ENV === 'development' && <DebugPanel />}
     </div>
   );
 }

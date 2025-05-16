@@ -26,7 +26,9 @@ export function PitchesPage() {
     if (!user?.id) return;
     
     try {
+      console.log('📱 PitchesPage - Loading pitches for user ID:', user.id);
       const { pitches: userPitches } = await PitchAPI.getAllPitches(user.id);
+      console.log('📱 PitchesPage - Loaded pitches:', userPitches);
       setPitches(userPitches);
     } catch (err) {
       console.error('Error loading pitches:', err);
