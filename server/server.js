@@ -8,6 +8,8 @@ import sequelize from './config/database.js';
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import pitchRoutes from './routes/pitchRoutes.js';
+import projectRoutes from './routes/projectRoutes.js';
+import eventRoutes from './routes/eventRoutes.js';
 import setupAssociations from './models/associations.js';
 import User from './models/user_data.js';
 import Profile from './models/profile.js';
@@ -44,6 +46,8 @@ app.get('/debug', (req, res) => {
 app.use('/api', authRoutes);
 app.use('/api', profileRoutes);
 app.use('/api', pitchRoutes);
+app.use('/api', projectRoutes);
+app.use('/api', eventRoutes);
 
 // Initialize database and start server
 const startServer = async () => {
@@ -52,12 +56,12 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log('✅ Database connection established successfully');
     
+    // Setup model associations
+    setupAssociations();
+    
     // Sync database models
     await sequelize.sync({ alter: true });
     console.log('✅ Database synced successfully');
-    
-    // Setup model associations
-    setupAssociations();
     
     // Start server
     app.listen(PORT, () => {

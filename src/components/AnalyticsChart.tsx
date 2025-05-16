@@ -10,7 +10,18 @@ import {
   Legend
 } from 'recharts';
 
-const generateData = () => {
+interface AnalyticsData {
+  connections: any[];
+  projects: any[];
+  pitches: any[];
+  events: any[];
+}
+
+interface AnalyticsChartProps {
+  data?: AnalyticsData | null;
+}
+
+const generateDefaultData = () => {
   const data = [];
   const now = new Date();
   
@@ -37,9 +48,9 @@ const metrics = [
 
 type Metric = typeof metrics[number]['key'];
 
-export function AnalyticsChart() {
-  const [data] = useState(generateData);
+export function AnalyticsChart({ data }: AnalyticsChartProps) {
   const [activeMetrics, setActiveMetrics] = useState<Metric[]>(['profileViews']);
+  const [defaultData] = useState(generateDefaultData);
 
   const toggleMetric = (metric: Metric) => {
     setActiveMetrics(current =>
@@ -50,12 +61,11 @@ export function AnalyticsChart() {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] p-8">
-      <h3 className="text-2xl font-bold mb-6">Engagement Analytics</h3>
-      
-      <div className="h-64 mb-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+      <h3 className="text-lg font-semibold mb-4 dark:text-white">Analytics Overview</h3>
+      <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <AreaChart data={defaultData}>
             <defs>
               {metrics.map(({ key, color }) => (
                 <linearGradient key={key} id={`gradient-${key}`} x1="0" y1="0" x2="0" y2="1">
@@ -66,24 +76,24 @@ export function AnalyticsChart() {
             </defs>
             
             <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-            <XAxis
+            <XAxis 
               dataKey="date"
               tick={{ fontSize: 12 }}
               tickLine={false}
               axisLine={false}
             />
-            <YAxis
+            <YAxis 
               tick={{ fontSize: 12 }}
               tickLine={false}
               axisLine={false}
               width={40}
             />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'white',
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
                 border: 'none',
                 borderRadius: '8px',
-                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
               }}
             />
             <Legend />
@@ -105,15 +115,15 @@ export function AnalyticsChart() {
         </ResponsiveContainer>
       </div>
 
-      <div className="flex flex-wrap gap-4">
-        {metrics.map(({ key, color, name }) => (
+      <div className="flex flex-wrap gap-4 mt-4">
+        {metrics.map(({ key, name }) => (
           <button
             key={key}
             onClick={() => toggleMetric(key)}
-            className={`px-6 py-2.5 rounded-full transition-all duration-200 font-medium
+            className={`px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium
               ${activeMetrics.includes(key)
                 ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
           >
             {name}

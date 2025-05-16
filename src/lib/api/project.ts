@@ -1,38 +1,41 @@
-import { LocalStorage } from '../storage/localStorage';
+import { ProjectService } from '../services/ProjectService';
 
 export const ProjectAPI = {
-  getAllProjects: () => {
-    const projects = LocalStorage.getProjects();
-    return Promise.resolve({ data: projects });
+  getAllProjects: async (userId?: string) => {
+    const { projects, error } = await ProjectService.getProjects(userId);
+    if (error) throw error;
+    return { data: projects };
   },
   
-  createProject: (formData: FormData) => {
-    const title = formData.get('title') as string;
-    const image = formData.get('image') as string;
-    const status = formData.get('status') as 'active' | 'completed' | 'achieved';
-
-    const newProject = {
-      id: Date.now().toString(),
-      title,
-      image,
-      tasksRemaining: '0/0',
-      progress: 0,
-      collaborators: 0,
-      status
+  createProject: async (formData: FormData) => {
+    // Convert FormData to the format expected by ProjectService
+    const projectData = {
+      userId: formData.get('user_id') as string,
+      title: formData.get('title') as string,
+      description: formData.get('Description') as string,
+      status: formData.get('status') as 'planning' | 'in-progress' | 'launched',
+      imageUrl: formData.get('image_url') as string
     };
 
-    LocalStorage.addProject(newProject);
-    return Promise.resolve({ data: newProject });
+    const { project, error } = await ProjectService.createProject(projectData);
+    if (error) throw error;
+    return { data: project };
   },
   
-  updateProjectStatus: (id: string, status: 'active' | 'completed' | 'achieved') => {
-    const projects = LocalStorage.getProjects();
-    const updatedProjects = projects.map(project => 
-      project.id === id 
-        ? { ...project, status }
-        : project
-    );
-    LocalStorage.setProjects(updatedProjects);
-    return Promise.resolve({ data: { success: true } });
+  updateProject: async (projectId: string, userId: string, updates: {
+    title?: string;
+    description?: string;
+    status?: 'planning' | 'in-progress' | 'launched';
+    imageUrl?: string;
+  }) => {
+    const { project, error } = await ProjectService.updateProject(projectId, userId, updates);
+    if (error) throw error;
+    return { data: project };
+  },
+
+  deleteProject: async (projectId: string, userId: string) => {
+    const { success, error } = await ProjectService.deleteProject(projectId, userId);
+    if (error) throw error;
+    return { success };
   }
 };

@@ -9,8 +9,8 @@ interface PitchEditorProps {
 export function PitchEditor({ onSave, onClose }: PitchEditorProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
-  const [mediaUrl, setMediaUrl] = useState('');
+  const [media_type, setMediaType] = useState<'image' | 'video'>('image');
+  const [media_url, setMediaUrl] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
 
@@ -31,8 +31,8 @@ export function PitchEditor({ onSave, onClose }: PitchEditorProps) {
     const formData = new FormData();
     formData.append('title', title);
     formData.append('description', description);
-    formData.append('mediaType', mediaType);
-    formData.append('mediaUrl', mediaUrl);
+    formData.append('media_type', media_type);
+    formData.append('media_url', media_url);
     formData.append('tags', JSON.stringify(tags));
 
     onSave(formData);
@@ -89,7 +89,7 @@ export function PitchEditor({ onSave, onClose }: PitchEditorProps) {
                 type="button"
                 onClick={() => setMediaType('image')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
-                  mediaType === 'image' 
+                  media_type === 'image' 
                     ? 'bg-primary-50 dark:bg-primary-900/30 border-primary-500 text-primary-700 dark:text-primary-300' 
                     : 'border-gray-300 dark:border-gray-600'
                 }`}
@@ -101,7 +101,7 @@ export function PitchEditor({ onSave, onClose }: PitchEditorProps) {
                 type="button"
                 onClick={() => setMediaType('video')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
-                  mediaType === 'video' 
+                  media_type === 'video' 
                     ? 'bg-primary-50 dark:bg-primary-900/30 border-primary-500 text-primary-700 dark:text-primary-300' 
                     : 'border-gray-300 dark:border-gray-600'
                 }`}
@@ -112,9 +112,9 @@ export function PitchEditor({ onSave, onClose }: PitchEditorProps) {
             </div>
             <input
               type="url"
-              value={mediaUrl}
+              value={media_url}
               onChange={(e) => setMediaUrl(e.target.value)}
-              placeholder={`Enter ${mediaType} URL`}
+              placeholder={`Enter ${media_type} URL`}
               className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
               required
             />
@@ -159,24 +159,23 @@ export function PitchEditor({ onSave, onClose }: PitchEditorProps) {
               </button>
             </div>
           </div>
-        </form>
 
-        <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-6 flex justify-end gap-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-          >
-            Create Pitch
-          </button>
-        </div>
+          <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-6 flex justify-end gap-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+            >
+              Create Pitch
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

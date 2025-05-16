@@ -1,89 +1,107 @@
-import { supabase } from '../supabase';
 import { Event } from '../../types/event';
+import api from '../api/client';
+
+interface CreateEventData {
+  creator_id: string;
+  title: string;
+  description?: string;
+  type?: string;
+  date: string;
+  startTime?: string;
+  endTime?: string;
+  location: {
+    type?: string;
+    url?: string;
+    address?: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
+  };
+}
 
 export class EventService {
-  static async createEvent(event: Omit<Event, 'id' | 'attendees'>) {
+  static async createEvent(event: CreateEventData) {
     try {
-      const { data, error } = await supabase
-        .from('events')
-        .insert({
-          creator_id: event.creator_id,
-          title: event.title,
-          description: event.description,
-          event_type: event.type,
-          date: event.date,
-          start_time: event.startTime,
-          end_time: event.endTime,
-          location_type: event.location.type,
-          location_url: event.location.url,
-          location_address: event.location.address,
-          location_coordinates: event.location.coordinates 
-            ? `(${event.location.coordinates.lat},${event.location.coordinates.lng})`
-            : null
-        })
-        .select()
-        .single();
+      const response = await api.post('/createEvent', {
+        creator_id: event.creator_id,
+        title: event.title,
+        description: event.description,
+        event_type: event.type,
+        date: event.date,
+        start_time: event.startTime,
+        end_time: event.endTime,
+        location_type: event.location.type,
+        location_url: event.location.url,
+        location_address: event.location.address,
+        location_coordinates: event.location.coordinates
+          ? `(${event.location.coordinates.lat},${event.location.coordinates.lng})`
+          : null
+      });
 
-      if (error) throw error;
-      return { event: data, error: null };
+      return { event: response.data.event, error: null };
     } catch (error) {
       console.error('Error creating event:', error);
       return { event: null, error };
     }
   }
 
-  static async getEvents(date?: string) {
+  static async getEvents(userId: string, date?: string) {
     try {
-      let query = supabase
-        .from('events')
-        .select(`
-          *,
-          creator:creator_id (
-            id,
-            email,
-            full_name,
-            avatar_url
-          ),
-          attendees:event_attendees(
-            user:user_id (
-              id,
-              email,
-              full_name,
-              avatar_url
-            ),
-            status
-          )
-        `)
-        .order('date', { ascending: true });
+      const url = date
+        ? `/events/${userId}?date=${date}`
+        : `/events/${userId}`;
 
-      if (date) {
-        query = query.eq('date', date);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return { events: data, error: null };
+      const response = await api.get(url);
+      return { events: response.data.events, error: null };
     } catch (error) {
       console.error('Error fetching events:', error);
       return { events: null, error };
     }
   }
 
+  static async updateEvent(eventId: string, userId: string, updates: Partial<CreateEventData>) {
+    try {
+      const response = await api.put(`/events/${userId}/${eventId}`, {
+        title: updates.title,
+        description: updates.description,
+        event_type: updates.type,
+        date: updates.date,
+        start_time: updates.startTime,
+        end_time: updates.endTime,
+        location_type: updates.location?.type,
+        location_url: updates.location?.url,
+        location_address: updates.location?.address,
+        location_coordinates: updates.location?.coordinates
+          ? `(${updates.location.coordinates.lat},${updates.location.coordinates.lng})`
+          : undefined
+      });
+
+      return { event: response.data.event, error: null };
+    } catch (error) {
+      console.error('Error updating event:', error);
+      return { event: null, error };
+    }
+  }
+
+  static async deleteEvent(eventId: string, userId: string) {
+    try {
+      await api.delete(`/events/${userId}/${eventId}`);
+      return { success: true, error: null };
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      return { success: false, error };
+    }
+  }
+
   static async attendEvent(eventId: string, userId: string, status: 'attending' | 'maybe' | 'declined') {
     try {
-      const { data, error } = await supabase
-        .from('event_attendees')
-        .upsert({
-          event_id: eventId,
-          user_id: userId,
-          status
-        })
-        .select()
-        .single();
+      const response = await api.post(`/events/${eventId}/attend`, {
+        user_id: userId,
+        status
+      });
 
-      if (error) throw error;
-      return { attendance: data, error: null };
+      return { attendance: response.data.attendance, error: null };
     } catch (error) {
       console.error('Error updating event attendance:', error);
       return { attendance: null, error };

@@ -1,58 +1,50 @@
-import { LocalStorage } from '../storage/localStorage';
-import { Pitch } from '../../types/pitch';
+import api from './client';
+import { BackendPitch } from '../../types/pitch';
+
+interface UpdatePitchData {
+  title?: string;
+  description?: string;
+  media_type?: 'image' | 'video';
+  media_url?: string;
+  tags?: string[];
+}
 
 export const PitchAPI = {
-  getAllPitches: () => {
-    const pitches = LocalStorage.getPitches();
-    return Promise.resolve({ data: pitches });
+  getAllPitches: async (userId: string) => {
+    const response = await api.get(`/pitches/${userId}`);
+    return response.data;
   },
   
-  createPitch: (formData: FormData) => {
-    const user = LocalStorage.getUser();
-    const profile = LocalStorage.getProfile();
-
-    if (!user || !profile) {
-      return Promise.reject(new Error('User not authenticated'));
-    }
-
-    const title = formData.get('title') as string;
-    const description = formData.get('description') as string;
-    const mediaType = formData.get('mediaType') as 'image' | 'video';
-    const mediaUrl = formData.get('mediaUrl') as string;
-    const tags = JSON.parse(formData.get('tags') as string);
-
-    const newPitch: Pitch = {
-      id: Date.now().toString(),
-      title,
-      description,
-      media: {
-        type: mediaType,
-        url: mediaUrl
-      },
-      author: {
-        id: user.id,
-        name: user.full_name,
-        avatar: profile.avatar_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150',
-        role: profile.role || 'Entrepreneur'
-      },
-      tags,
-      likes: 0,
-      comments: 0,
-      createdAt: new Date().toISOString()
+  createPitch: async (formData: FormData) => {
+    const data = {
+      user_id: formData.get('user_id'),
+      title: formData.get('title'),
+      description: formData.get('description'),
+      media_type: formData.get('media_type'),
+      media_url: formData.get('media_url'),
+      tags: JSON.parse(formData.get('tags') as string)
     };
 
-    LocalStorage.addPitch(newPitch);
-    return Promise.resolve({ data: newPitch });
+    const response = await api.post('/createPitch', data);
+    return response.data;
   },
   
-  likePitch: (id: string) => {
-    const pitches = LocalStorage.getPitches();
-    const updatedPitches = pitches.map(pitch => 
-      pitch.id === id 
-        ? { ...pitch, likes: pitch.likes + 1 }
-        : pitch
-    );
-    LocalStorage.setPitches(updatedPitches);
-    return Promise.resolve({ data: { success: true } });
+  updatePitch: async (userId: string, pitchId: string, data: UpdatePitchData) => {
+    // Convert frontend format to backend format
+    const backendData = {
+      title: data.title,
+      description: data.description,
+      media_type: data.media_type,
+      media_url: data.media_url,
+      tags: data.tags
+    };
+
+    const response = await api.put(`/updatePitch/${userId}/${pitchId}`, backendData);
+    return response.data;
+  },
+
+  deletePitch: async (userId: string, pitchId: string) => {
+    const response = await api.delete(`/deletePitch/${userId}/${pitchId}`);
+    return response.data;
   }
 };

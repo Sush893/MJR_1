@@ -6,10 +6,38 @@ import { ProjectsCard } from './ProjectsCard';
 import { MatchesCard } from './MatchesCard';
 import { AnalyticsChart } from './AnalyticsChart';
 import { RecommendedStartups } from './RecommendedStartups';
-import { useAuth } from '../contexts/AuthContext';
+import { useDashboardSync } from '../hooks/useDashboardSync';
 
 export function DashboardContent() {
-  const { profile } = useAuth();
+  const { profile, projects, matches, communities, analytics, isLoading, error } = useDashboardSync();
+
+  if (isLoading) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-screen">
+        <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-xl max-w-lg text-center">
+          <h3 className="text-red-800 dark:text-red-200 font-semibold text-lg mb-2">Error Loading Dashboard</h3>
+          <p className="text-red-600 dark:text-red-300">{error.message}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-200 rounded-lg hover:bg-red-200 dark:hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!profile) return null;
 
@@ -30,10 +58,10 @@ export function DashboardContent() {
 
       {/* Grid of 4 cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <ProjectsCard projects={profile.active_projects || []} />
-        <MatchesCard interests={profile.interests || []} />
+        <ProjectsCard projects={projects} />
+        <MatchesCard interests={matches} />
         <QuickActions />
-        <Community communities={profile.communities || []} />
+        <Community communities={communities} />
       </div>
 
       {/* Recommendations Section */}
@@ -44,7 +72,7 @@ export function DashboardContent() {
       {/* Calendar and Analytics in a row */}
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Calendar />
-        <AnalyticsChart />
+        <AnalyticsChart data={analytics} />
       </div>
     </div>
   );

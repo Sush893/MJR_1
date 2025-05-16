@@ -1,77 +1,86 @@
 import { Pitch } from '../../types/pitch';
+import api from '../api/client';
 
-// Mock pitches data
-const mockPitches: Pitch[] = [
-  {
-    id: '1',
-    title: 'AI-Powered EdTech Platform',
-    description: 'Revolutionizing education with personalized AI learning paths. Our platform adapts to each student\'s unique learning style and pace, providing customized content and real-time feedback.',
-    media: {
-      type: 'image',
-      url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=800'
-    },
-    author: {
-      id: 'mock-user-id',
-      name: 'Jenny Jones',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150',
-      role: 'Entrepreneur'
-    },
-    tags: ['EdTech', 'AI', 'Machine Learning', 'Education'],
-    likes: 42,
-    comments: 12,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: '2',
-    title: 'Sustainable Learning Initiative',
-    description: 'Creating eco-friendly educational resources and tools. Our initiative focuses on environmental education while maintaining a zero-carbon footprint in our digital delivery methods.',
-    media: {
-      type: 'image',
-      url: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=800'
-    },
-    author: {
-      id: 'mock-user-id',
-      name: 'Jenny Jones',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150',
-      role: 'Entrepreneur'
-    },
-    tags: ['EdTech', 'Sustainability', 'GreenTech'],
-    likes: 35,
-    comments: 8,
-    createdAt: new Date(Date.now() - 86400000).toISOString() // 1 day ago
-  }
-];
+interface CreatePitchData {
+  author: {
+    id: string;
+    name: string;
+    avatar?: string;
+    role?: string;
+  };
+  title: string;
+  description: string;
+  media: {
+    type: string;
+    url: string;
+  };
+  tags: string[];
+}
 
 export class PitchService {
-  static async createPitch(pitch: Omit<Pitch, 'id' | 'createdAt' | 'likes' | 'comments'>) {
+  static async createPitch(pitch: CreatePitchData) {
     try {
-      const newPitch: Pitch = {
-        id: Date.now().toString(),
-        ...pitch,
-        likes: 0,
-        comments: 0,
-        createdAt: new Date().toISOString()
-      };
-      
-      return { pitch: newPitch, error: null };
+      const response = await api.post('/createPitch', {
+        user_id: pitch.author.id,
+        title: pitch.title,
+        description: pitch.description,
+        media_type: pitch.media.type,
+        media_url: pitch.media.url,
+        tags: pitch.tags
+      });
+
+      return { pitch: response.data.pitch, error: null };
     } catch (error) {
       console.error('Error creating pitch:', error);
       return { pitch: null, error };
     }
   }
 
-  static async getPitches() {
+  static async getPitches(userId?: string) {
     try {
-      return { pitches: mockPitches, error: null };
+      if (!userId) {
+        throw new Error('userId is required');
+      }
+
+      const response = await api.get(`/pitches/${userId}`);
+      return { pitches: response.data.pitches, error: null };
     } catch (error) {
       console.error('Error fetching pitches:', error);
       return { pitches: null, error };
     }
   }
 
+  static async updatePitch(pitchId: string, userId: string, updates: Partial<Pitch>) {
+    try {
+      const response = await api.put(`/updatePitch/${userId}/${pitchId}`, {
+        title: updates.title,
+        description: updates.description,
+        media_type: updates.media?.type,
+        media_url: updates.media?.url,
+        tags: updates.tags
+      });
+
+      return { pitch: response.data.pitch, error: null };
+    } catch (error) {
+      console.error('Error updating pitch:', error);
+      return { pitch: null, error };
+    }
+  }
+
+  static async deletePitch(pitchId: string, userId: string) {
+    try {
+      await api.delete(`/deletePitch/${userId}/${pitchId}`);
+      return { success: true, error: null };
+    } catch (error) {
+      console.error('Error deleting pitch:', error);
+      return { success: false, error };
+    }
+  }
+
   static async likePitch(pitchId: string, userId: string) {
     try {
-      return { data: { success: true }, error: null };
+      const response = await api.post(`/pitches/${pitchId}/like`, { userId });
+      return { data: response.data, error: null };
     } catch (error) {
       console.error('Error liking pitch:', error);
       return { data: null, error };
@@ -80,13 +89,11 @@ export class PitchService {
 
   static async commentOnPitch(pitchId: string, userId: string, content: string) {
     try {
-      const comment = {
-        id: Date.now().toString(),
-        content,
+      const response = await api.post(`/pitches/${pitchId}/comment`, {
         userId,
-        createdAt: new Date().toISOString()
-      };
-      return { comment, error: null };
+        content
+      });
+      return { comment: response.data.comment, error: null };
     } catch (error) {
       console.error('Error commenting on pitch:', error);
       return { comment: null, error };

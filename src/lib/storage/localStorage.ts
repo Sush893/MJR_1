@@ -201,7 +201,8 @@ const KEYS = {
   
 };
 
-const TOKEN_KEY= 'auth_token'
+const TOKEN_KEY = 'auth_token';
+const isClient = typeof window !== 'undefined';
 
 // Type guard to check if something is a User object
 const isUser = (obj: any): obj is User => {
@@ -311,35 +312,40 @@ export const LocalStorage = {
     localStorage.clear();
   },
 
-   getToken(): string | null {
-    return localStorage.getItem(TOKEN_KEY);
+  getToken(): string | null {
+    if (!isClient) return null;
+    return window.localStorage.getItem(TOKEN_KEY);
   },
 
-  //  method to set token
-   setToken(token: string): void {
-    localStorage.setItem(TOKEN_KEY, token);
+  setToken(token: string): void {
+    if (!isClient) return;
+    window.localStorage.setItem(TOKEN_KEY, token);
   },
 
-  //  method to remove token
-   removeToken(): void {
-    localStorage.removeItem(TOKEN_KEY);
+  removeToken(): void {
+    if (!isClient) return;
+    window.localStorage.removeItem(TOKEN_KEY);
+  },
+
+  clearStorage(): void {
+    if (!isClient) return;
+    window.localStorage.clear();
   },
 
   // Generalized methods for other data
-   getItem(key: string): string | null {
+  getItem(key: string): string | null {
     return localStorage.getItem(key);
   },
 
-   setItem(key: string, value: string): void {
+  setItem(key: string, value: string): void {
     localStorage.setItem(key, value);
   },
 
-   removeItem(key: string): void {
+  removeItem(key: string): void {
     localStorage.removeItem(key);
   },
 
-   clear(): void {
+  clear: () => {
     localStorage.clear();
   }
-
 };

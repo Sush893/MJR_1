@@ -1,10 +1,10 @@
 import React from 'react';
 import { PitchCard } from './PitchCard';
-import { Pitch } from '../../types/pitch';
+import { BackendPitch } from '../../types/pitch';
 
 interface PitchesGridProps {
-  pitches: Pitch[];
-  onViewPitch: (pitch: Pitch) => void;
+  pitches: BackendPitch[];
+  onViewPitch: (pitch: BackendPitch) => void;
 }
 
 export function PitchesGrid({ pitches, onViewPitch }: PitchesGridProps) {

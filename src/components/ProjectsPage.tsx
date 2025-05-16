@@ -1,26 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { MoreVertical, CheckCircle, Award } from 'lucide-react';
+import { MoreVertical, CheckCircle, Award, Pencil, Trash2 } from 'lucide-react';
 import { ProjectEditor } from './ProjectsPage/ProjectEditor';
 import { ProjectAPI } from '../lib/api/project';
+import { AuthAPI } from '../lib/api/auth';
 import { LoadingSpinner } from './common/LoadingSpinner';
 
 interface Project {
   id: string;
   title: string;
-  image: string;
-  tasksRemaining: string;
+  description: string;
+  image_url: string;
+  status: 'planning' | 'in-progress' | 'launched';
   progress: number;
   collaborators: number;
-  status: 'active' | 'completed' | 'achieved';
+  tasksRemaining: string;
 }
 
 export function ProjectsPage() {
-  const [activeFilter, setActiveFilter] = useState<'active' | 'completed' | 'achieved'>('active');
+  const [activeFilter, setActiveFilter] = useState<'planning' | 'in-progress' | 'launched'>('planning');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showActions, setShowActions] = useState<string | null>(null);
 
   useEffect(() => {
     loadProjects();
@@ -28,7 +31,13 @@ export function ProjectsPage() {
 
   const loadProjects = async () => {
     try {
-      const { data } = await ProjectAPI.getAllProjects();
+      // First get the current user's profile to get userId
+      const { data: profileData, error: profileError } = await AuthAPI.getProfile();
+      if (profileError) throw profileError;
+      if (!profileData?.user?.id) throw new Error('No user ID found');
+
+      // Then load projects for this user
+      const { data } = await ProjectAPI.getAllProjects(profileData.user.id.toString());
       setProjects(data);
     } catch (err) {
       console.error('Error loading projects:', err);
@@ -40,6 +49,15 @@ export function ProjectsPage() {
 
   const handleCreateProject = async (formData: FormData) => {
     try {
+      // Get current user's profile to get userId
+      const { data: profileData, error: profileError } = await AuthAPI.getProfile();
+      if (profileError) throw profileError;
+      if (!profileData?.user?.id) throw new Error('No user ID found');
+
+      // Add user_id to the form data (using the correct field name)
+      formData.append('user_id', profileData.user.id.toString());
+
+      // Create project
       await ProjectAPI.createProject(formData);
       await loadProjects();
       setIsEditing(false);
@@ -49,13 +67,45 @@ export function ProjectsPage() {
     }
   };
 
-  const handleUpdateStatus = async (projectId: string, status: 'active' | 'completed' | 'achieved') => {
+  const handleEditProject = async (project: Project) => {
+    setSelectedProject(project);
+    setIsEditing(true);
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
     try {
-      await ProjectAPI.updateProjectStatus(projectId, status);
+      const { data: profileData, error: profileError } = await AuthAPI.getProfile();
+      if (profileError) throw profileError;
+      if (!profileData?.user?.id) throw new Error('No user ID found');
+
+      await ProjectAPI.deleteProject(projectId, profileData.user.id.toString());
       await loadProjects();
     } catch (err) {
-      console.error('Error updating project status:', err);
-      setError('Failed to update project status');
+      console.error('Error deleting project:', err);
+      setError('Failed to delete project');
+    }
+  };
+
+  const handleUpdateProject = async (formData: FormData) => {
+    try {
+      const { data: profileData, error: profileError } = await AuthAPI.getProfile();
+      if (profileError) throw profileError;
+      if (!profileData?.user?.id) throw new Error('No user ID found');
+      if (!selectedProject) return;
+
+      await ProjectAPI.updateProject(selectedProject.id, profileData.user.id.toString(), {
+        title: formData.get('title') as string,
+        description: formData.get('Description') as string,
+        status: formData.get('status') as 'planning' | 'in-progress' | 'launched',
+        imageUrl: formData.get('image_url') as string
+      });
+
+      await loadProjects();
+      setSelectedProject(null);
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Error updating project:', err);
+      setError('Failed to update project');
     }
   };
 
@@ -70,7 +120,7 @@ export function ProjectsPage() {
           : 'bg-primary-100/50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/50'}`}
     >
       {Icon && <Icon className="w-4 h-4" />}
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {status === 'in-progress' ? 'In Progress' : status.charAt(0).toUpperCase() + status.slice(1)}
     </button>
   );
 
@@ -82,7 +132,10 @@ export function ProjectsPage() {
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold dark:text-white">My Projects</h1>
         <button 
-          onClick={() => setIsEditing(true)}
+          onClick={() => {
+            setSelectedProject(null);
+            setIsEditing(true);
+          }}
           className="px-6 py-2 bg-primary-500 dark:bg-primary-600 text-white rounded-full hover:bg-primary-600 dark:hover:bg-primary-500 transition-colors"
         >
           New Project
@@ -90,27 +143,62 @@ export function ProjectsPage() {
       </div>
 
       <div className="flex gap-4 mb-8">
-        <FilterButton status="active" />
-        <FilterButton status="completed" icon={CheckCircle} />
-        <FilterButton status="achieved" icon={Award} />
+        <FilterButton status="planning" />
+        <FilterButton status="in-progress" icon={CheckCircle} />
+        <FilterButton status="launched" icon={Award} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProjects.map(project => (
           <div 
             key={project.id}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] dark:shadow-gray-900/10 overflow-hidden hover:shadow-[0_4px_25px_rgba(0,0,0,0.15)] dark:hover:shadow-gray-900/20 transition-all duration-200 cursor-pointer"
-            onClick={() => setSelectedProject(project)}
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] dark:shadow-gray-900/10 overflow-hidden hover:shadow-[0_4px_25px_rgba(0,0,0,0.15)] dark:hover:shadow-gray-900/20 transition-all duration-200"
           >
             <div className="relative h-48">
               <img 
-                src={project.image} 
+                src={project.image_url} 
                 alt={project.title}
                 className="w-full h-full object-cover"
               />
-              <button className="absolute top-4 right-4 p-2 bg-white/90 dark:bg-gray-800/90 rounded-full hover:bg-white dark:hover:bg-gray-700 transition-colors">
-                <MoreVertical className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-              </button>
+              <div className="absolute top-4 right-4">
+                <button 
+                  className="p-2 bg-white/90 dark:bg-gray-800/90 rounded-full hover:bg-white dark:hover:bg-gray-700 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowActions(showActions === project.id ? null : project.id);
+                  }}
+                >
+                  <MoreVertical className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                </button>
+                {showActions === project.id && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditProject(project);
+                        setShowActions(null);
+                      }}
+                      className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <Pencil className="w-4 h-4" />
+                      Edit Project
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm('Are you sure you want to delete this project?')) {
+                          handleDeleteProject(project.id);
+                        }
+                        setShowActions(null);
+                      }}
+                      className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete Project
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
             
             <div className="p-6">
@@ -147,8 +235,12 @@ export function ProjectsPage() {
 
       {isEditing && (
         <ProjectEditor
-          onSave={handleCreateProject}
-          onClose={() => setIsEditing(false)}
+          project={selectedProject}
+          onSave={selectedProject ? handleUpdateProject : handleCreateProject}
+          onClose={() => {
+            setSelectedProject(null);
+            setIsEditing(false);
+          }}
         />
       )}
     </div>

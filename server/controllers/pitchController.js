@@ -2,14 +2,14 @@ import Pitch from "../models/pitch.js";
 
 export const createPitch = async (req, res) => {
     try {   
-        const { user_id, title, description, mediaType, mediaUrl, tags } = req.body;
+        const { user_id, title, description, media_type, media_url, tags } = req.body;
 
         const newPitch = await Pitch.create({
             user_id,
             title,
             description,
-            media_type: mediaType,
-            media_url: mediaUrl,
+            media_type,
+            media_url,
             tags: Array.isArray(tags) ? tags : []
         });
 
@@ -40,7 +40,7 @@ export const getPitchesByUser = async (req, res) => {
 export const updatePitch = async (req, res) => {
     try {
         const { pitch_id, user_id } = req.params;
-        const { title, description, mediaType, mediaUrl, tags } = req.body;
+        const { title, description, media_type, media_url, tags } = req.body;
 
         const pitch = await Pitch.findOne({ where: { id: pitch_id, user_id } });
 
@@ -51,8 +51,8 @@ export const updatePitch = async (req, res) => {
         await pitch.update({
             title: title || pitch.title,
             description: description || pitch.description,
-            media_type: mediaType || pitch.media_type,
-            media_url: mediaUrl || pitch.media_url,
+            media_type: media_type || pitch.media_type,
+            media_url: media_url || pitch.media_url,
             tags: tags || pitch.tags
         });
 
