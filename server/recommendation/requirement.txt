@@ -1,0 +1,8 @@
+flask
+pandas
+numpy
+flask_cors
+sqlalchemy
+rapidfuzz
+rank_bm25
+nltk
