@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import pandas as pd
 import numpy as np
 from flask_cors import CORS
@@ -20,40 +20,40 @@ CORS(app)
 DB_URL = "postgresql://postgres:123456@localhost:5432/test_db"
 engine = create_engine(DB_URL)
 
-df = None 
+# Global variables
+df = None
 bm25 = None
-corpus = None 
+corpus = None
 
 TOKEN_PATTERN = r"\b\w+\b"
 
 def fuzzy_correct(word):
     """Fuzzy corrects a given word based on dataset keywords."""
     if not isinstance(word, str) or not word.strip():
-        return word  
+        return word
 
     if df is None or df.empty:
-        return word  
+        return word
 
     # Extract unique keywords from "industry" and "tags" columns
     industry_keywords = set(df.get("industry", "").dropna().astype(str))
     tags_keywords = set(df.get("tags", "").dropna().astype(str))
 
-    keywords = industry_keywords | tags_keywords  # Union of both sets (removes duplicates)
+    keywords = industry_keywords | tags_keywords
 
     if not keywords:
-        return word  
+        return word
 
-    # Perform fuzzy matching
     result = process.extractOne(word, keywords, scorer=fuzz.ratio, score_cutoff=80)
-    return result[0] if result else word  
+    return result[0] if result else word
 
 def get_synonyms(word):
     synonyms = set()
     for syn in wordnet.synsets(word):
         for lemma in syn.lemmas():
             synonyms.add(lemma.name().replace("_", " "))
-            if len(synonyms) >= 3:  
-                break  
+            if len(synonyms) >= 3:
+                break
     return list(synonyms)
 
 def preprocess_query(query):
@@ -79,7 +79,6 @@ def fetch_startups():
             df = pd.DataFrame()
             return
 
-        # Combine text fields
         df["text"] = (
             df.get("title", "").fillna('') + " " +
             df.get("industry", "").fillna('') + " " +
@@ -93,6 +92,10 @@ def fetch_startups():
     except Exception as e:
         print(f"Error fetching startups: {e}")
         df = pd.DataFrame()
+
+@app.route("/")
+def index():
+    return render_template("index.html")
 
 @app.route("/search", methods=["POST"])
 def search():
