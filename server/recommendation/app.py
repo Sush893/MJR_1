@@ -17,7 +17,7 @@ app = Flask(__name__)
 CORS(app)
 
 # PostgreSQL Configuration
-DB_URL = "postgresql://postgres:123456@localhost:5432/test_db"
+DB_URL = "postgresql://postgres:root@localhost:5432/Cofounder_Connect"
 engine = create_engine(DB_URL)
 
 # Global variables
@@ -71,7 +71,7 @@ def fetch_startups():
     global df, bm25, corpus
 
     try:
-        query = "SELECT id, title, description, industry, tags FROM startups"
+        query = "SELECT id, title, description, industry, tags FROM profiles"
         df = pd.read_sql(query, engine)
 
         if df.empty:
