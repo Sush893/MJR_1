@@ -64,7 +64,7 @@ const startServer = async () => {
     // Sync database models
     // WARNING: Using force:true will drop all tables and recreate them
     // This is a temporary solution for development; in production, use migrations
-    await sequelize.sync({ force: true });
+    await sequelize.sync({ force: false });
     console.log('✅ Database synced successfully');
     
     // Start server

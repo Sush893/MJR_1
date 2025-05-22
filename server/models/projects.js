@@ -28,7 +28,7 @@ const Project = sequelize.define('Project', {
     allowNull: true,
   },
   image_url: {
-    type: DataTypes.STRING,
+    type: DataTypes.TEXT,
     allowNull: true,
   },
   status: {
