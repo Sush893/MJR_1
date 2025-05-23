@@ -10,6 +10,7 @@ import profileRoutes from './routes/profileRoutes.js';
 import pitchRoutes from './routes/pitchRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 import setupAssociations from './models/associations.js';
 import User from './models/user_data.js';
 import Profile from './models/profile.js';
@@ -23,11 +24,13 @@ console.log('JWT Secret available:', process.env.JWT_SECRET ? 'Yes' : 'No');
 
 // Middleware
 app.use(cors({
-  origin: '*', // For development - replace with your frontend URL in production
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  credentials: true
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173', // Support both general and specific CORS
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // For parsing multipart/form-data
 
 // Debug route
 app.get('/debug', (req, res) => {
@@ -42,12 +45,19 @@ app.get('/debug', (req, res) => {
   });
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Something broke!', error: err.message });
+});
+
 // Setup routes
 app.use('/api', authRoutes);
 app.use('/api', profileRoutes);
 app.use('/api', pitchRoutes);
 app.use('/api', projectRoutes);
 app.use('/api', eventRoutes);
+app.use('/api', uploadRoutes); // Add upload routes
 
 // Initialize database and start server
 const startServer = async () => {
@@ -62,9 +72,7 @@ const startServer = async () => {
     console.log('Model associations established');
     
     // Sync database models
-    // WARNING: Using force:true will drop all tables and recreate them
-    // This is a temporary solution for development; in production, use migrations
-    await sequelize.sync({ force: true });
+    await sequelize.sync({ force: false });
     console.log('✅ Database synced successfully');
     
     // Start server

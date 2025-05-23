@@ -8,6 +8,17 @@ import { AnalyticsChart } from './AnalyticsChart';
 import { RecommendedStartups } from './RecommendedStartups';
 import { useDashboardSync } from '../hooks/useDashboardSync';
 import { useAuth } from '../contexts/AuthContext';
+import { BackendPitch } from '../types/pitch';
+
+// Define interface for combined project/pitch type
+interface ProjectCardItem {
+  id: string;
+  title: string;
+  description: string;
+  status: 'planning' | 'in-progress' | 'launched';
+  imageUrl?: string;
+  type: 'project' | 'pitch';
+}
 
 export function DashboardContent() {
   const { user, profile: authProfile } = useAuth();
@@ -23,29 +34,51 @@ export function DashboardContent() {
     refetch 
   } = useDashboardSync();
 
+  // Debug logs for detailed pitch data inspection
+  console.log('PITCH DATA DEBUG - Raw pitches:', pitches);
+  console.log('PITCH DATA DEBUG - Pitches type:', typeof pitches);
+  console.log('PITCH DATA DEBUG - Is array?', Array.isArray(pitches));
+  console.log('PITCH DATA DEBUG - Pitches length:', pitches?.length || 0);
+  
+  if (pitches && pitches.length > 0) {
+    console.log('PITCH DATA DEBUG - First pitch example:', pitches[0]);
+    console.log('PITCH DATA DEBUG - First pitch keys:', pitches[0] ? Object.keys(pitches[0]) : 'No keys');
+  } else {
+    console.log('PITCH DATA DEBUG - No pitches found');
+  }
+
   // Combine projects and pitches for the ProjectsCard
-  const allProjects = [
+  const allProjects: ProjectCardItem[] = [
+    // Map projects data
     ...(projects || []).map(project => ({
-      id: project.id,
-      title: project.title,
-      description: project.description,
-      status: project.status || 'planning',
+      id: project.id || `project-${Math.random().toString(36).substr(2, 9)}`,
+      title: project.title || 'Untitled Project',
+      description: project.description || '',
+      status: (project.status as 'planning' | 'in-progress' | 'launched') || 'planning',
       imageUrl: project.imageUrl || project.media_url || '',
-      type: 'project'
+      type: 'project' as const
     })),
-    ...(pitches || []).map(pitch => ({
-      id: pitch.id,
-      title: pitch.title,
-      description: pitch.description,
-      status: pitch.status || 'planning',
-      imageUrl: pitch.media_url || pitch.imageUrl || '',
-      type: 'pitch'
-    }))
+    
+    // Map pitches data with more flexible property access
+    ...(pitches || []).map((pitch: BackendPitch) => {
+      console.log('PITCH DATA DEBUG - Mapping pitch:', pitch);
+      return {
+        id: pitch.id || `pitch-${Math.random().toString(36).substr(2, 9)}`,
+        title: pitch.title || 'Untitled Pitch',
+        description: pitch.description || '',
+        status: 'planning' as const,
+        imageUrl: pitch.media_url || '',
+        type: 'pitch' as const
+      };
+    })
   ];
 
   // Debug log to trace data
-  console.log('Projects:', projects, 'Pitches:', pitches, 'AllProjects:', allProjects);
-  console.log('DASHBOARD DEBUG:', { projects, pitches, allProjects });
+  console.log('DASHBOARD DEBUG - Combined Project+Pitch data:', allProjects);
+  console.log('PITCH COUNT:', pitches ? pitches.length : 0);
+  console.log('PROJECT COUNT:', projects ? projects.length : 0);
+  console.log('PITCH COUNT in allProjects:', allProjects.filter(p => p.type === 'pitch').length);
+  console.log('PROJECT COUNT in allProjects:', allProjects.filter(p => p.type === 'project').length);
 
   if (isLoading) {
     return (

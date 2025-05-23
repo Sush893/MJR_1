@@ -31,7 +31,7 @@ const Pitch = sequelize.define('Pitch', {
     allowNull: true,
   },
   media_url: {
-    type: DataTypes.STRING,
+    type: DataTypes.TEXT,
     allowNull: true,
   },
   tags: {

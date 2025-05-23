@@ -13,6 +13,7 @@ import { DebugPanel } from '../common/DebugPanel';
 export interface OnboardingData {
   role: string;
   roleDetails: Record<string, any>;
+  industry?: string;
   firstName: string;
   lastName: string;
   interests: string[];
@@ -74,6 +75,7 @@ export function OnboardingFlow() {
           last_name: updatedData.lastName,
           role: updatedData.role,
           role_details: updatedData.roleDetails,
+          industry: updatedData.industry || (updatedData.roleDetails?.entrepreneur?.industry || ''),
           interests: updatedData.interests,
           active_projects: updatedData.activeProjects,
           communities: updatedData.communities,

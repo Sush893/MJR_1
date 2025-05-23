@@ -13,10 +13,12 @@
  */
 
 import React, { useState } from 'react';
-import { Camera, Edit2, MapPin, Briefcase } from 'lucide-react';
+import { Camera, Edit2, MapPin, Briefcase, Search } from 'lucide-react';
 import { UserProfile } from '../../types/profile';
+import { Startup } from '../../types/recommendation';
 import { EditProfileModal } from './EditProfileModal';
 import { ImageSelectModal } from './ImageSelectModal';
+import RecommendationService from '../../lib/services/RecommendationService';
 
 interface ProfileHeaderProps {
   profile: UserProfile;
@@ -27,6 +29,34 @@ export function ProfileHeader({ profile, onUpdateProfile }: ProfileHeaderProps) 
   // State for managing modal visibility
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [imageSelectType, setImageSelectType] = useState<'avatar' | 'background' | null>(null);
+  
+  // State for search functionality
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Startup[]>([]);
+  const [recommendedStartups, setRecommendedStartups] = useState<Startup[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+
+  /**
+   * Fetches recommended startups based on user profile
+   */
+  const fetchRecommendations = async () => {
+    setIsLoading(true);
+    try {
+      const recommendations = await RecommendationService.getRecommendations(profile);
+      setRecommendedStartups(recommendations);
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch recommendations when component mounts
+  React.useEffect(() => {
+    fetchRecommendations();
+  }, [profile.id, profile.skills]);
 
   /**
    * Handles image selection from the ImageSelectModal
@@ -41,8 +71,88 @@ export function ProfileHeader({ profile, onUpdateProfile }: ProfileHeaderProps) 
     setImageSelectType(null);
   };
 
+  /**
+   * Handles search for startups based on user input
+   */
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    setIsSearching(true);
+    setShowResults(true);
+
+    try {
+      const results = await RecommendationService.searchStartups(searchQuery);
+      setSearchResults(results);
+      
+      // Update user profile with search query (for personalization)
+      if (profile.id) {
+        RecommendationService.updateUserProfile(profile.id, searchQuery);
+      }
+    } catch (error) {
+      console.error('Error searching startups:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   return (
     <div className="relative mb-24">
+      {/* Search Bar */}
+      <div className="absolute top-4 right-4 z-10 w-full max-w-md">
+        <form onSubmit={handleSearch} className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search for startups..."
+            className="w-full py-2 pl-4 pr-10 rounded-full border border-gray-300 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+          <button
+            type="submit"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"
+            disabled={isSearching}
+          >
+            <Search className="w-5 h-5" />
+          </button>
+        </form>
+
+        {/* Search Results Dropdown */}
+        {showResults && searchResults.length > 0 && (
+          <div className="absolute mt-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden max-h-96 overflow-y-auto z-20">
+            <div className="p-2 border-b border-gray-200 dark:border-gray-700 flex justify-between">
+              <h3 className="font-medium">Search Results</h3>
+              <button 
+                onClick={() => setShowResults(false)}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Close
+              </button>
+            </div>
+            <ul>
+              {searchResults.map((startup) => (
+                <li key={startup.id} className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
+                  <h4 className="font-medium">{startup.title}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{startup.description}</p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {startup.industry && (
+                      <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                        {startup.industry}
+                      </span>
+                    )}
+                    {startup.tags.slice(0, 3).map((tag) => (
+                      <span key={tag} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-xs">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
       {/* Background Image Section */}
       <div className="relative h-80 overflow-hidden rounded-xl">
         {profile.backgroundImage ? (
@@ -160,6 +270,52 @@ export function ProfileHeader({ profile, onUpdateProfile }: ProfileHeaderProps) 
               {profile.bio || 'No bio yet'}
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Recommended Startups Section - Add after profile details card */}
+      <div className="mt-8 bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md">
+        <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Recommended For You</h2>
+        
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+          </div>
+        ) : recommendedStartups.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {recommendedStartups.map((startup) => (
+              <div key={startup.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <h3 className="font-bold text-gray-900 dark:text-white">{startup.title}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{startup.description}</p>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {startup.industry && (
+                    <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                      {startup.industry}
+                    </span>
+                  )}
+                  {startup.tags.slice(0, 3).map((tag) => (
+                    <span key={tag} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-xs">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+            No recommendations found. Try updating your skills or preferences.
+          </p>
+        )}
+        
+        <div className="mt-4 text-center">
+          <button
+            onClick={fetchRecommendations}
+            disabled={isLoading}
+            className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 text-sm font-medium"
+          >
+            Refresh recommendations
+          </button>
         </div>
       </div>
 

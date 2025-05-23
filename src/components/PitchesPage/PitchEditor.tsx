@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, Upload, Image, Video, Plus } from 'lucide-react';
+import axios from 'axios';
 
 interface PitchEditorProps {
   onSave: (formData: FormData) => void;
@@ -13,6 +14,9 @@ export function PitchEditor({ onSave, onClose }: PitchEditorProps) {
   const [media_url, setMediaUrl] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -23,6 +27,62 @@ export function PitchEditor({ onSave, onClose }: PitchEditorProps) {
 
   const handleRemoveTag = (tagToRemove: string) => {
     setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleFileUpload = async (file: File) => {
+    try {
+      // Check file size (100MB limit)
+      if (file.size > 100 * 1024 * 1024) {
+        throw new Error('File size exceeds 100MB limit');
+      }
+
+      setUploading(true);
+      setUploadProgress(0);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await axios.post('http://localhost:3000/api/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total!);
+          setUploadProgress(percentCompleted);
+        },
+      });
+
+      setMediaUrl(response.data.url);
+    } catch (error: any) {
+      console.error('Error uploading file:', error);
+      let errorMessage = 'Failed to upload file. Please try again.';
+      
+      if (error.message === 'File size exceeds 100MB limit') {
+        errorMessage = 'File size exceeds 100MB limit. Please choose a smaller file.';
+      } else if (error.response?.data) {
+        // Try to extract the error message from the HTML response
+        const match = error.response.data.match(/Error: ([^<]+)/);
+        if (match) {
+          errorMessage = match[1];
+        }
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const fileType = file.type.split('/')[0];
+      if (fileType !== media_type) {
+        alert(`Please select a ${media_type} file.`);
+        return;
+      }
+      handleFileUpload(file);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -87,7 +147,10 @@ export function PitchEditor({ onSave, onClose }: PitchEditorProps) {
             <div className="flex gap-4 mb-4">
               <button
                 type="button"
-                onClick={() => setMediaType('image')}
+                onClick={() => {
+                  setMediaType('image');
+                  setMediaUrl('');
+                }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
                   media_type === 'image' 
                     ? 'bg-primary-50 dark:bg-primary-900/30 border-primary-500 text-primary-700 dark:text-primary-300' 
@@ -99,7 +162,10 @@ export function PitchEditor({ onSave, onClose }: PitchEditorProps) {
               </button>
               <button
                 type="button"
-                onClick={() => setMediaType('video')}
+                onClick={() => {
+                  setMediaType('video');
+                  setMediaUrl('');
+                }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
                   media_type === 'video' 
                     ? 'bg-primary-50 dark:bg-primary-900/30 border-primary-500 text-primary-700 dark:text-primary-300' 
@@ -110,13 +176,57 @@ export function PitchEditor({ onSave, onClose }: PitchEditorProps) {
                 Video
               </button>
             </div>
+            
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              accept={media_type === 'image' ? 'image/*' : 'video/*'}
+              className="hidden"
+            />
+
+            <div className="flex gap-2 mb-4">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+                disabled={uploading}
+              >
+                <Upload className="w-5 h-5" />
+                {uploading ? `Uploading ${uploadProgress}%` : 'Upload File'}
+              </button>
+            </div>
+
+            {uploading && (
+              <div className="mb-4">
+                <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                  <div 
+                    className="bg-primary-500 h-2.5 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {uploadProgress}% uploaded
+                </p>
+              </div>
+            )}
+
+            {media_url && (
+              <div className="mb-4">
+                {media_type === 'image' ? (
+                  <img src={media_url} alt="Uploaded preview" className="max-h-48 rounded-lg" />
+                ) : (
+                  <video src={media_url} controls className="max-h-48 rounded-lg" />
+                )}
+              </div>
+            )}
+
             <input
               type="url"
               value={media_url}
               onChange={(e) => setMediaUrl(e.target.value)}
-              placeholder={`Enter ${media_type} URL`}
+              placeholder={`Or enter ${media_type} URL`}
               className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-              required
             />
           </div>
 

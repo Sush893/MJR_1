@@ -3,11 +3,13 @@ import { ProfileAPI } from '../lib/api/profile';
 import { ProjectAPI } from '../lib/api/project';
 import { PitchAPI } from '../lib/api/pitch';
 import { useAuth } from '../contexts/AuthContext';
+import { BackendPitch } from '../types/pitch';
+import { mockPitch } from '../data/mockPitch';
 
 export interface DashboardData {
   profile: any;
   projects: any[];
-  pitches: any[];
+  pitches: BackendPitch[];
   matches: any[];
   communities: any[];
   analytics: any;
@@ -59,25 +61,28 @@ export function useDashboardSync() {
           throw error;
         })
       ]);
-
-      // Log the raw responses for debugging
-      console.log('📊 Raw API responses:', {
-        profile: profileResponse,
-        projects: projectsResponse,
-        pitches: pitchesResponse
-      });
-
-      // More detailed debug for project and pitch responses
-      console.log('📊 DEBUG: Projects Response Structure:', JSON.stringify(projectsResponse));
-      console.log('📊 DEBUG: Pitches Response Structure:', JSON.stringify(pitchesResponse));
+      
+      // More detailed logging of the pitch response
+      console.log('📊 COMPLETE PITCH RESPONSE:', pitchesResponse);
 
       // Extract projects and pitches from the responses
       const projects = Array.isArray(projectsResponse.data) ? projectsResponse.data : [];
-      const pitches = Array.isArray(pitchesResponse.data?.pitches) ? pitchesResponse.data.pitches : [];
-
-      console.log('📊 Processed data:', {
-        projects,
-        pitches
+      
+      // Extract pitches from API response - expect { pitches: [] } format
+      let pitches: BackendPitch[] = [];
+      
+      if (pitchesResponse && pitchesResponse.pitches && Array.isArray(pitchesResponse.pitches)) {
+        pitches = pitchesResponse.pitches;
+        console.log('📍 Found pitches in response:', pitches.length);
+      } else {
+        console.log('📍 No pitches found in expected format');
+      }
+      
+      // Log details about what we found
+      console.log('📊 Final pitch data:', {
+        found: pitches.length > 0,
+        count: pitches.length,
+        source: 'backend API'
       });
 
       // Update dashboard data

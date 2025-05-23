@@ -1,5 +1,6 @@
 import api from './client';
 import { BackendPitch } from '../../types/pitch';
+import { mockPitch } from '../../data/mockPitch';
 
 interface UpdatePitchData {
   title?: string;
@@ -11,8 +12,34 @@ interface UpdatePitchData {
 
 export const PitchAPI = {
   getAllPitches: async (userId: string) => {
-    const response = await api.get(`/pitches/${userId}`);
-    return response.data;
+    console.log('PitchAPI.getAllPitches called with userId:', userId);
+    try {
+      // Attempt to get pitches from the server
+      const response = await api.get(`/pitches/${userId}`);
+      console.log('PitchAPI.getAllPitches response:', response);
+      console.log('PitchAPI.getAllPitches response.data:', response.data);
+      
+      // Return the actual API response
+      if (response.data) {
+        return response.data;
+      } else {
+        console.warn('PitchAPI.getAllPitches: Empty response data');
+        // If in development mode, provide mock data
+        if (process.env.NODE_ENV === 'development') {
+          return { pitches: [mockPitch] };
+        }
+        return { pitches: [] };
+      }
+    } catch (error) {
+      console.error('PitchAPI.getAllPitches ERROR:', error);
+      
+      // Even on error, return mock data in development mode
+      if (process.env.NODE_ENV === 'development') {
+        console.log('PitchAPI.getAllPitches: Error occurred, using mock data in development mode');
+        return { pitches: [mockPitch] };
+      }
+      throw error;
+    }
   },
   
   createPitch: async (formData: FormData) => {

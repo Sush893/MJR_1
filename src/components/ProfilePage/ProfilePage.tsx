@@ -23,7 +23,15 @@ export function ProfilePage() {
 
   const loadProfile = async () => {
     try {
-      const { data } = await ProfileAPI.getProfile();
+      console.log('🔍 Fetching profile data...');
+      const { data, error } = await ProfileAPI.getProfile();
+      console.log('📦 Received profile data:', data);
+      console.log('❌ Profile error (if any):', error);
+      
+      if (error) {
+        throw error;
+      }
+      
       setProfile(data);
     } catch (err) {
       console.error('Error loading profile:', err);
@@ -68,6 +76,12 @@ export function ProfilePage() {
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
   if (!profile) return null;
 
+  console.log('🎯 Rendering profile with data:', {
+    profile,
+    recommendedMatches: profile.recommendedMatches || [],
+    activeCommunities: profile.communities || []
+  });
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <ProfileHeader profile={profile} onUpdateProfile={handleUpdateProfile} />
@@ -87,7 +101,7 @@ export function ProfilePage() {
             </div>
             
             <BlogList
-              posts={profile.blogs}
+              posts={profile.blogs || []}
               onEdit={() => {}}
               onDelete={handleDeleteBlog}
             />
@@ -95,8 +109,8 @@ export function ProfilePage() {
 
           <div className="lg:col-span-1">
             <Sidebar
-              recommendedMatches={[]}
-              activeCommunities={[]}
+              recommendedMatches={profile.recommendedMatches || []}
+              activeCommunities={profile.communities || []}
             />
           </div>
         </div>

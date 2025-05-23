@@ -7,16 +7,29 @@ export interface BlogPost {
 }
 
 export interface UserProfile {
-  id: string;
+  id?: string;
   name: string;
-  role: string;
-  avatar: string;
-  backgroundImage: string;
-  bio: string;
-  location: string;
-  skills: string[];
+  email?: string;
+  avatar?: string;
+  backgroundImage?: string;
+  bio?: string;
+  role?: string;
+  location?: string;
+  skills?: string[];
+  searchHistory?: {
+    queries: Array<{
+      query: string;
+      timestamp: number;
+    }>
+  };
+  preferences?: {
+    industries: string[];
+    tags: string[];
+  };
   interests: string[];
   blogs: BlogPost[];
+  recommendedMatches: RecommendedMatch[];
+  communities: Community[];
 }
 
 export interface Community {

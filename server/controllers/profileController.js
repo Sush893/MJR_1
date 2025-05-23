@@ -7,6 +7,7 @@ export const createProfile = async (req, res) => {
       first_name,
       last_name,
       avatar_url,
+      industry,
       role,
       role_details,
       bio,
@@ -14,6 +15,8 @@ export const createProfile = async (req, res) => {
       interests,
       active_projects,
       communities,
+      recommended_matches,
+      blogs,
       onboarding_completed
     } = req.body;
 
@@ -32,13 +35,16 @@ export const createProfile = async (req, res) => {
       first_name,
       last_name,
       avatar_url,
+      industry,
       role,
       role_details,
       bio,
       location,
       interests,
       active_projects,
-      communities,
+      communities: communities || [],
+      recommended_matches: recommended_matches || [],
+      blogs: blogs || [],
       onboarding_completed
     });
 
@@ -71,10 +77,18 @@ export const getProfile = async (req, res) => {
       });
     }
 
+    // Transform the data to match the frontend expected format
+    const transformedProfile = {
+      ...profile.toJSON(),
+      recommendedMatches: profile.recommended_matches || [],
+      communities: profile.communities || [],
+      blogs: profile.blogs || []
+    };
+
     return res.status(200).json({
       success: true,
       message: "Profile fetched successfully",
-      data: profile
+      data: transformedProfile
     });
 
   } catch (error) {
@@ -90,13 +104,9 @@ export const getProfile = async (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    const updateData = req.body;
+    const updates = req.body;
 
-    const profile = await Profile.findOneAndUpdate(
-      { userId },
-      { $set: updateData },
-      { new: true, runValidators: true }
-    );
+    const profile = await Profile.findOne({ userId });
 
     if (!profile) {
       return res.status(404).json({
@@ -105,10 +115,26 @@ export const updateProfile = async (req, res) => {
       });
     }
 
+    // Update the profile with new data
+    const updatedProfile = await profile.update({
+      ...updates,
+      communities: updates.communities || profile.communities || [],
+      recommended_matches: updates.recommended_matches || profile.recommended_matches || [],
+      blogs: updates.blogs || profile.blogs || []
+    });
+
+    // Transform the data to match the frontend expected format
+    const transformedProfile = {
+      ...updatedProfile.toJSON(),
+      recommendedMatches: updatedProfile.recommended_matches || [],
+      communities: updatedProfile.communities || [],
+      blogs: updatedProfile.blogs || []
+    };
+
     return res.status(200).json({
       success: true,
       message: "Profile updated successfully",
-      data: profile
+      data: transformedProfile
     });
 
   } catch (error) {

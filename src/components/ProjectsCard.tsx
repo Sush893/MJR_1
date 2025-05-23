@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ChevronRight, Loader2 } from 'lucide-react';
 
 interface Project {
@@ -7,6 +7,7 @@ interface Project {
   description: string;
   status: 'planning' | 'in-progress' | 'launched';
   imageUrl?: string;
+  type?: 'project' | 'pitch';
 }
 
 interface ProjectsCardProps {
@@ -17,6 +18,23 @@ interface ProjectsCardProps {
 
 export function ProjectsCard({ projects, isLoading = false, error = null }: ProjectsCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [projectCount, setProjCount] = useState(0);
+  const [pitchCount, setPitchCount] = useState(0);
+
+  // Log the projects array to see what we're receiving
+  console.log('ProjectsCard received projects:', projects);
+  
+  // Set project and pitch counts with useEffect to ensure they update properly
+  useEffect(() => {
+    // Count projects and pitches separately
+    const pCount = projects?.filter(item => item.type === 'project')?.length || 0;
+    const pitCount = projects?.filter(item => item.type === 'pitch')?.length || 0;
+    
+    setProjCount(pCount);
+    setPitchCount(pitCount);
+    
+    console.log('ProjectsCard counts - Projects:', pCount, 'Pitches:', pitCount);
+  }, [projects]);
 
   const getStatusColor = (status: Project['status']) => {
     switch (status) {
@@ -47,16 +65,33 @@ export function ProjectsCard({ projects, isLoading = false, error = null }: Proj
         className="bg-white dark:bg-gray-800 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] dark:shadow-gray-900/10 p-6 cursor-pointer hover:shadow-[0_4px_25px_rgba(0,0,0,0.15)] dark:hover:shadow-gray-900/20 transition-all duration-200"
         onClick={() => setIsModalOpen(true)}
       >
-        <div className="flex items-center gap-4 mb-6">
-          {isLoading ? (
-            <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
-          ) : (
-            <span className="text-5xl font-bold text-primary-600 dark:text-primary-400">
-              {projects.length}
-            </span>
-          )}
-          <p className="text-lg font-medium leading-tight dark:text-gray-200">Active Projects & Pitches</p>
-          <ChevronRight className="w-5 h-5 ml-auto text-primary-600 dark:text-primary-400" />
+        <div className="flex flex-col gap-2 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {isLoading ? (
+                <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
+              ) : (
+                <span className="text-4xl font-bold text-primary-600 dark:text-primary-400">
+                  {projectCount}
+                </span>
+              )}
+              <p className="text-lg font-medium leading-tight dark:text-gray-200">Projects</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {isLoading ? (
+                <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
+              ) : (
+                <span className="text-4xl font-bold text-primary-600 dark:text-primary-400">
+                  {pitchCount}
+                </span>
+              )}
+              <p className="text-lg font-medium leading-tight dark:text-gray-200">Pitches</p>
+            </div>
+            <ChevronRight className="w-5 h-5 ml-auto text-primary-600 dark:text-primary-400" />
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           {isLoading ? (
@@ -67,6 +102,7 @@ export function ProjectsCard({ projects, isLoading = false, error = null }: Proj
             projects.slice(0, 4).map((project) => (
               <span key={project.id} className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(project.status)}`}>
                 {project.title}
+                {project.type && <small className="ml-1 opacity-60">({project.type})</small>}
               </span>
             ))
           ) : (
@@ -89,7 +125,7 @@ export function ProjectsCard({ projects, isLoading = false, error = null }: Proj
               </button>
             </div>
             
-            <div className="p-6 space-y-6">
+            <div className="p-6 grid grid-cols-1 gap-4">
               {isLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
@@ -102,9 +138,16 @@ export function ProjectsCard({ projects, isLoading = false, error = null }: Proj
                   >
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-xl font-bold dark:text-white">{project.title}</h3>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(project.status)}`}>
-                        {project.status}
-                      </span>
+                      <div className="flex gap-2">
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          project.type === 'pitch' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                        }`}>
+                          {project.type === 'pitch' ? 'Pitch' : 'Project'}
+                        </span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(project.status)}`}>
+                          {project.status}
+                        </span>
+                      </div>
                     </div>
                     
                     <p className="text-gray-600 dark:text-gray-400 mb-4">

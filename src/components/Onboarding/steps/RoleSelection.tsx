@@ -7,31 +7,33 @@ interface RoleData {
   role: UserRole;
   details: {
     entrepreneur?: {
-      startupStage: 'ideation' | 'mvp' | 'launched';
-      fundingNeeds: boolean;
-      industryFocus: string[];
-      skillsNeeded: string[];
+      startupStage?: 'ideation' | 'mvp' | 'launched';
+      fundingNeeds?: boolean;
+      industry?: string;
+      industryFocus?: string[];
+      skillsNeeded?: string[];
     };
     mentor?: {
-      expertise: string[];
-      yearsOfExperience: number;
-      availabilityHours: number;
-      successfulExits: number;
+      expertise?: string[];
+      yearsOfExperience?: number;
+      availabilityHours?: number;
+      successfulExits?: number;
     };
     investor?: {
-      investmentStage: string[];
-      ticketSize: {
+      investmentStage?: string[];
+      ticketSize?: {
         min: number;
         max: number;
       };
-      portfolioSize: number;
-      sectorsOfInterest: string[];
+      portfolioSize?: number;
+      sectorsOfInterest?: string[];
     };
   };
 }
 
 interface Props {
-  onNext: (data: RoleData) => void;
+  onNext: (data: { role: UserRole; details: RoleData['details']; industry?: string }) => void;
+  data?: any;
 }
 
 const roles = [
@@ -63,9 +65,13 @@ export function RoleSelection({ onNext }: Props) {
     e.preventDefault();
     if (!selectedRole) return;
 
+    // Extract industry if entrepreneur
+    const industry = selectedRole === 'entrepreneur' ? details.entrepreneur?.industry : undefined;
+
     onNext({
       role: selectedRole,
-      details
+      details,
+      industry
     });
   };
 
@@ -132,6 +138,24 @@ export function RoleSelection({ onNext }: Props) {
                   No
                 </label>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Industry
+              </label>
+              <input
+                type="text"
+                value={details.entrepreneur?.industry || ''}
+                onChange={(e) => setDetails({
+                  entrepreneur: {
+                    ...details.entrepreneur,
+                    industry: e.target.value
+                  }
+                })}
+                placeholder="e.g. Healthcare, Fintech, E-commerce"
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg"
+              />
             </div>
           </div>
         );

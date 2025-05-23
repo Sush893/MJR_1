@@ -24,6 +24,10 @@ const Profile = sequelize.define('Profile', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  industry: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   avatar_url: {
     type: DataTypes.STRING,
     allowNull: true,
@@ -42,6 +46,18 @@ const Profile = sequelize.define('Profile', {
   },
   skills: {
     type: DataTypes.ARRAY(DataTypes.STRING),
+    defaultValue: [],
+  },
+  communities: {
+    type: DataTypes.ARRAY(DataTypes.STRING),
+    defaultValue: [],
+  },
+  recommended_matches: {
+    type: DataTypes.JSONB,
+    defaultValue: [],
+  },
+  blogs: {
+    type: DataTypes.JSONB,
     defaultValue: [],
   },
   onboarding_completed: {
