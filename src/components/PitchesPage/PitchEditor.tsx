@@ -59,10 +59,16 @@ export function PitchEditor({ onSave, onClose }: PitchEditorProps) {
       if (error.message === 'File size exceeds 100MB limit') {
         errorMessage = 'File size exceeds 100MB limit. Please choose a smaller file.';
       } else if (error.response?.data) {
-        // Try to extract the error message from the HTML response
-        const match = error.response.data.match(/Error: ([^<]+)/);
-        if (match) {
-          errorMessage = match[1];
+        // Handle different types of error responses
+        if (typeof error.response.data === 'string') {
+          const match = error.response.data.match(/Error: ([^<]+)/);
+          if (match) {
+            errorMessage = match[1];
+          }
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
         }
       }
       
